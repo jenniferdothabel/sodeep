@@ -336,7 +336,8 @@ if uploaded_file:
         if is_image:
             # Run stego detection with enhanced sensitivity algorithms
             try:
-                detection_result = analyze_image_for_steganography(temp_path)
+                with st.spinner("Running steganography analysis..."):
+                    detection_result = analyze_image_for_steganography(temp_path)
                 likelihood = detection_result.likelihood
                 likelihood_percentage = f"{likelihood*100:.1f}%"
                 

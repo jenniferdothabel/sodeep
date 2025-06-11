@@ -100,24 +100,36 @@ def analyze_image_for_steganography(image_path):
         if img.mode != 'RGB' and img.mode != 'RGBA':
             img = img.convert('RGB')
         
-        # Convert to numpy array
+        # Convert to numpy array and resize if too large to prevent hanging
         pixels = np.array(img)
         
-        # Run various detection methods
+        # Optimize for large images - resize if larger than 1000x1000
+        if pixels.shape[0] > 1000 or pixels.shape[1] > 1000:
+            # Calculate new size maintaining aspect ratio
+            max_dim = max(pixels.shape[0], pixels.shape[1])
+            scale = 1000 / max_dim
+            new_height = int(pixels.shape[0] * scale)
+            new_width = int(pixels.shape[1] * scale)
+            
+            # Resize image
+            img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            pixels = np.array(img_resized)
         
-        # 1. Statistical analysis of LSB
+        # Run optimized detection methods
+        
+        # 1. Statistical analysis of LSB (optimized)
         lsb_likelihood = detect_lsb_steganography(pixels)
         result.add_indicator("LSB Analysis", lsb_likelihood, weight=1.5)
         
-        # 2. Histogram analysis
+        # 2. Histogram analysis (fast)
         histogram_likelihood = analyze_histogram(pixels)
         result.add_indicator("Histogram Analysis", histogram_likelihood, weight=1.2)
         
-        # 3. Noise analysis
+        # 3. Simplified noise analysis
         noise_likelihood = analyze_noise_patterns(pixels)
         result.add_indicator("Noise Analysis", noise_likelihood, weight=1.0)
         
-        # 4. Chi-square analysis
+        # 4. Chi-square analysis (sampled for speed)
         chi_square_likelihood = chi_square_test(pixels)
         result.add_indicator("Chi-Square Test", chi_square_likelihood, weight=1.3)
         
@@ -158,36 +170,42 @@ def detect_lsb_steganography(pixels):
     Returns:
         Likelihood of LSB steganography (0-1)
     """
-    # Extract LSBs from each channel
-    lsb_r = pixels[:, :, 0] % 2
-    lsb_g = pixels[:, :, 1] % 2
-    lsb_b = pixels[:, :, 2] % 2
+    # Sample pixels for large images to prevent hanging
+    max_pixels = 100000  # Limit analysis to 100k pixels for speed
+    total_pixels = pixels.shape[0] * pixels.shape[1]
     
-    # Flatten arrays
-    lsb_r = lsb_r.flatten()
-    lsb_g = lsb_g.flatten()
-    lsb_b = lsb_b.flatten()
+    if total_pixels > max_pixels:
+        # Sample pixels randomly
+        indices = np.random.choice(total_pixels, max_pixels, replace=False)
+        flat_pixels = pixels.reshape(-1, 3)
+        sampled_pixels = flat_pixels[indices]
+        sampled_pixels = sampled_pixels.reshape(-1, 1, 3)
+    else:
+        sampled_pixels = pixels
+    
+    # Extract LSBs from each channel
+    lsb_r = sampled_pixels[:, :, 0].flatten() % 2
+    lsb_g = sampled_pixels[:, :, 1].flatten() % 2
+    lsb_b = sampled_pixels[:, :, 2].flatten() % 2
     
     # Calculate bias from expected distribution (should be ~0.5 for random)
     r_bias = abs(np.mean(lsb_r) - 0.5) * 2
     g_bias = abs(np.mean(lsb_g) - 0.5) * 2
     b_bias = abs(np.mean(lsb_b) - 0.5) * 2
     
-    # A perfect uniform distribution would give bias=0, completely skewed would give bias=1
+    # Simplified run analysis for speed
+    r_runs = min(count_runs(lsb_r[:10000]) / min(len(lsb_r), 10000), 1.0)  # Limit to 10k samples
+    g_runs = min(count_runs(lsb_g[:10000]) / min(len(lsb_g), 10000), 1.0)
+    b_runs = min(count_runs(lsb_b[:10000]) / min(len(lsb_b), 10000), 1.0)
     
-    # Analyze patterns and runs
-    r_runs = count_runs(lsb_r) / len(lsb_r)
-    g_runs = count_runs(lsb_g) / len(lsb_g)
-    b_runs = count_runs(lsb_b) / len(lsb_b)
-    
-    # Calculate entropy
-    r_entropy = calculate_entropy(lsb_r)
-    g_entropy = calculate_entropy(lsb_g)
-    b_entropy = calculate_entropy(lsb_b)
+    # Fast entropy calculation
+    r_entropy = calculate_entropy(lsb_r[:5000])  # Limit entropy calc to 5k samples
+    g_entropy = calculate_entropy(lsb_g[:5000])
+    b_entropy = calculate_entropy(lsb_b[:5000])
     
     # Also analyze the distribution of pairs of adjacent bits
     # This can detect more sophisticated steganography methods
-    pair_analysis_r = analyze_bit_pairs(lsb_r)
+    pair_analysis_r = analyze_bit_pairs(lsb_r[:5000])  # Limit for speed
     pair_analysis_g = analyze_bit_pairs(lsb_g)
     pair_analysis_b = analyze_bit_pairs(lsb_b)
     
