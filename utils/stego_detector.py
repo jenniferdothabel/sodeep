@@ -206,13 +206,13 @@ def detect_lsb_steganography(pixels):
     # Also analyze the distribution of pairs of adjacent bits
     # This can detect more sophisticated steganography methods
     pair_analysis_r = analyze_bit_pairs(lsb_r[:5000])  # Limit for speed
-    pair_analysis_g = analyze_bit_pairs(lsb_g)
-    pair_analysis_b = analyze_bit_pairs(lsb_b)
+    pair_analysis_g = analyze_bit_pairs(lsb_g[:5000])  # Limit for speed
+    pair_analysis_b = analyze_bit_pairs(lsb_b[:5000])  # Limit for speed
     
-    # Check for patterns in different bit planes (not just LSB)
-    second_bit_plane_r = (pixels[:, :, 0] // 2) % 2
-    second_bit_plane_g = (pixels[:, :, 1] // 2) % 2
-    second_bit_plane_b = (pixels[:, :, 2] // 2) % 2
+    # Check for patterns in different bit planes (not just LSB) - use sampled pixels
+    second_bit_plane_r = (sampled_pixels[:, :, 0] // 2) % 2
+    second_bit_plane_g = (sampled_pixels[:, :, 1] // 2) % 2
+    second_bit_plane_b = (sampled_pixels[:, :, 2] // 2) % 2
     
     # Calculate correlation between LSB and 2nd bit plane
     # Low correlation might indicate hidden data
