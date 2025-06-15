@@ -28,6 +28,10 @@ args = "Debug Test"
 task = "workflow.run"
 args = "Message Extractor"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Image Creator"
+
 [[workflows.workflow]]
 name = "Streamlit App"
 author = "agent"
@@ -55,6 +59,15 @@ task = "shell.exec"
 args = "streamlit run extract_hidden.py --server.address=0.0.0.0 --server.port=5003"
 waitForPort = 5003
 
+[[workflows.workflow]]
+name = "Test Image Creator"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run create_test_images.py --server.address=0.0.0.0 --server.port=5004"
+waitForPort = 5004
+
 [[ports]]
 localPort = 5000
 
@@ -69,6 +82,10 @@ externalPort = 3000
 [[ports]]
 localPort = 5003
 externalPort = 3001
+
+[[ports]]
+localPort = 5004
+externalPort = 3002
 
 [[ports]]
 localPort = 8080
