@@ -233,16 +233,17 @@ def detect_lsb_steganography(pixels):
     g_entropy_norm = g_entropy
     b_entropy_norm = b_entropy
     
-    # For bias, lower value means more likely steganography
-    r_indicator = (1 - r_bias) * 0.3 + r_entropy_norm * 0.3 + r_runs * 0.2 + pair_analysis_r * 0.1 + r_corr_indicator * 0.1
-    g_indicator = (1 - g_bias) * 0.3 + g_entropy_norm * 0.3 + g_runs * 0.2 + pair_analysis_g * 0.1 + g_corr_indicator * 0.1
-    b_indicator = (1 - b_bias) * 0.3 + b_entropy_norm * 0.3 + b_runs * 0.2 + pair_analysis_b * 0.1 + b_corr_indicator * 0.1
+    # Recalibrated weights for more realistic detection
+    # High entropy and low bias are normal for photographs, so reduce their weight
+    r_indicator = (1 - r_bias) * 0.2 + r_entropy_norm * 0.15 + r_runs * 0.3 + pair_analysis_r * 0.2 + r_corr_indicator * 0.15
+    g_indicator = (1 - g_bias) * 0.2 + g_entropy_norm * 0.15 + g_runs * 0.3 + pair_analysis_g * 0.2 + g_corr_indicator * 0.15
+    b_indicator = (1 - b_bias) * 0.2 + b_entropy_norm * 0.15 + b_runs * 0.3 + pair_analysis_b * 0.2 + b_corr_indicator * 0.15
     
-    # Take the maximum indicator as our result
-    lsb_likelihood = max(r_indicator, g_indicator, b_indicator)
+    # Take the average instead of max to be less aggressive
+    lsb_likelihood = (r_indicator + g_indicator + b_indicator) / 3
     
-    # Scale to make the result more decisive and boost sensitivity
-    lsb_likelihood = scale_likelihood(lsb_likelihood, sensitivity=2.5)
+    # Reduce sensitivity significantly for more realistic results
+    lsb_likelihood = scale_likelihood(lsb_likelihood, sensitivity=1.2)
     
     return lsb_likelihood
 
