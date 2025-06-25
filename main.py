@@ -225,8 +225,8 @@ if uploaded_file:
                     try:
                         hex_dump = get_hex_dump(temp_path, 256)
                         if hex_dump:
-                            formatted_hex = format_hex_dump(hex_dump)
-                            st.markdown(formatted_hex, unsafe_allow_html=True)
+                            # Display hex dump as plain text instead of HTML
+                            st.code(hex_dump, language="text")
                         else:
                             st.write("No hex data available")
                     except Exception as e:
