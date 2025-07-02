@@ -25,39 +25,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Clean cyberpunk theme
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #000010;
-        background-image: 
-            radial-gradient(circle at 20% 90%, rgba(28, 0, 50, 0.4) 0%, transparent 20%),
-            radial-gradient(circle at 80% 10%, rgba(0, 50, 90, 0.4) 0%, transparent 20%);
-    }
-    h1, h2, h3, h4, h5, h6 {
-        color: #00ffff;
-        font-family: monospace;
-        text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-    }
-    h1 {
-        color: #ff00ff;
-        text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Simple header
-st.markdown("""
-<div style="text-align: center; background-color: rgba(0, 10, 30, 0.7); padding: 20px; 
-            border-radius: 10px; border: 1px solid #00ffff; margin-bottom: 20px;">
-    <h1 style="color: #ff00ff; font-family: monospace; text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);">
-        DEEP ANAL
-    </h1>
-    <h3 style="color: #00ffff; font-family: monospace;">
-        Steganography Analysis
-    </h3>
-</div>
-""", unsafe_allow_html=True)
+# Simple clean header without HTML
+st.title("🔍 DEEP ANAL")
+st.subheader("Steganography Analysis Platform")
 
 # File upload
 uploaded_file = st.file_uploader(
