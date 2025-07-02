@@ -912,10 +912,6 @@ def create_strings_visualization(strings, max_strings=300):
             color_idx = int((theta / (2*pi)) * len(colors))
             color = colors[color_idx % len(colors)]
             
-            # Add random rotation for some words
-            rotation_options = [0, 0, 0, 15, -15, 30, -30, 45, -45, 90, -90]
-            rotation = rotation_options[hash(string) % len(rotation_options)]
-            
             # Check for overlap with already placed words
             overlap = False
             for px, py, ps in placed_words:
@@ -946,10 +942,6 @@ def create_strings_visualization(strings, max_strings=300):
                     hovertext=f"{string} (found {count} times)",
                     showlegend=False
                 ))
-                
-                # Apply rotation if needed
-                if rotation != 0:
-                    fig.data[-1].textangle = rotation
                 
                 break
     
