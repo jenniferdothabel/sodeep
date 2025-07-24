@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  deep-anal:
+    build: .
+    container_name: deep-anal-app
+    ports:
+      - "5001:5001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:deepanal123@postgres:5432/deepanal
+    depends_on:
+      - postgres
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    networks:
+      - deepanal-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: deep-anal-db
+    environment:
+      - POSTGRES_DB=deepanal
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=deepanal123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - deepanal-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: deep-anal-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - deep-anal
+    restart: unless-stopped
+    networks:
+      - deepanal-network
+
+volumes:
+  postgres_data:
+
+networks:
+  deepanal-network:
+    driver: bridge
