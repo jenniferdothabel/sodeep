@@ -91,26 +91,64 @@ def get_hex_dump(file_path, num_bytes=256):
 def run_zsteg(file_path):
     """Run zsteg with -a option on PNG files."""
     try:
-        # First check if zsteg is available
-        check_cmd = "which zsteg"
-        check_result = subprocess.run(check_cmd, shell=True, capture_output=True, text=True)
+        # Check if file is PNG first
+        with open(file_path, 'rb') as f:
+            header = f.read(8)
+            if not header.startswith(b'\x89PNG\r\n\x1a\n'):
+                return "ZSTEG only works with PNG files. File format not supported."
         
-        if check_result.returncode != 0:
-            # Zsteg not available, provide a simulated output for testing
-            return """zsteg not installed. Alternative analysis provided:
-            
-[*] Analyzing file for potential hidden data
-[*] Running bit pattern analysis
-[*] Checking LSB encoding in all bit planes
-[*] Examining color channels for anomalies
-[*] Searching for embedded signatures
-            
-No definitive hidden content detected through alternative analysis.
-Consider installing zsteg for more comprehensive analysis."""
+        # Set up environment with gem bin path
+        env = os.environ.copy()
+        gem_bin_path = "/home/runner/workspace/.local/share/gem/ruby/3.1.0/bin"
         
-        # Use zsteg if available
-        cmd = f"zsteg -a \"{file_path}\""
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        return result.stdout if result.stdout else result.stderr
+        # Add gem bin to PATH if not already there
+        if 'PATH' in env:
+            if gem_bin_path not in env['PATH']:
+                env['PATH'] = f"{env['PATH']}:{gem_bin_path}"
+        else:
+            env['PATH'] = gem_bin_path
+        
+        # Try to run zsteg with full path first
+        zsteg_cmd = f"{gem_bin_path}/zsteg"
+        
+        # Check if zsteg exists
+        if not os.path.exists(zsteg_cmd):
+            return f"ZSTEG not found at {zsteg_cmd}. Please install with: gem install zsteg"
+        
+        # Run zsteg with various analysis options
+        cmd = [zsteg_cmd, "-a", str(file_path)]
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=env
+        )
+        
+        output = result.stdout if result.stdout else result.stderr
+        
+        if not output or output.strip() == "":
+            return "No output from ZSTEG analysis"
+        
+        # Clean up output and filter meaningful results
+        lines = output.split('\n')
+        meaningful_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if line and not any(skip in line.lower() for skip in [
+                'system temporary path', 'world-writable', 'nothing', 
+                'possible image block size', 'downscaling may be necessary'
+            ]):
+                meaningful_lines.append(line)
+        
+        if meaningful_lines:
+            return "\n".join(meaningful_lines)
+        else:
+            return "No hidden data detected by ZSTEG analysis"
+        
+    except subprocess.TimeoutExpired:
+        return "ZSTEG analysis timed out after 30 seconds"
     except Exception as e:
-        return f"Error running zsteg: {str(e)}"
+        return f"ZSTEG analysis error: {str(e)}"
