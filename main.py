@@ -143,17 +143,60 @@ if uploaded_file:
                     try:
                         strings = extract_strings(temp_path)
                         if strings:
-                            # Create word map visualization
-                            strings_plot = create_strings_visualization(strings)
-                            st.plotly_chart(strings_plot, use_container_width=True)
+                            # Filter and clean strings for display
+                            clean_strings = []
+                            for s in strings:
+                                s = s.strip()
+                                if s and len(s) >= 4 and len(s) <= 100:
+                                    # Filter out strings that are mostly the same character
+                                    if len(set(s)) > 1:
+                                        clean_strings.append(s)
                             
-                            # Display some extracted strings
-                            st.write("**Sample Extracted Strings:**")
-                            display_strings = [s for s in strings if len(s) > 3][:15]
-                            for s in display_strings:
-                                st.code(s)
+                            if clean_strings:
+                                st.write(f"**Found {len(clean_strings)} meaningful strings:**")
+                                
+                                # Create scrollable container with CSS
+                                strings_container = f"""
+                                <div style="
+                                    height: 400px; 
+                                    overflow-y: auto; 
+                                    border: 1px solid #333; 
+                                    padding: 10px; 
+                                    background-color: rgba(0, 20, 40, 0.7);
+                                    border-radius: 5px;
+                                    font-family: monospace;
+                                ">
+                                """
+                                
+                                for i, string in enumerate(clean_strings[:100]):  # Limit to 100 strings
+                                    # Escape HTML and truncate very long strings
+                                    display_string = string.replace('<', '&lt;').replace('>', '&gt;')
+                                    if len(display_string) > 80:
+                                        display_string = display_string[:77] + "..."
+                                    
+                                    strings_container += f"""
+                                    <div style="
+                                        padding: 4px 8px; 
+                                        margin: 2px 0; 
+                                        background-color: rgba(0, 255, 255, 0.1);
+                                        border-left: 3px solid #00ffff;
+                                        font-size: 12px;
+                                        color: #00ffff;
+                                        word-break: break-all;
+                                    ">
+                                        <span style="color: #ff00ff; font-weight: bold;">{i+1:03d}:</span> {display_string}
+                                    </div>
+                                    """
+                                
+                                strings_container += "</div>"
+                                st.markdown(strings_container, unsafe_allow_html=True)
+                                
+                                # Show statistics
+                                st.caption(f"Showing top {min(100, len(clean_strings))} of {len(clean_strings)} strings found")
+                            else:
+                                st.info("No meaningful strings found after filtering")
                         else:
-                            st.write("No readable strings found")
+                            st.write("No readable strings extracted")
                     except Exception as e:
                         st.error(f"String analysis failed: {str(e)}")
                 

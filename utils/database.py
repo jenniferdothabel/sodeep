@@ -38,8 +38,18 @@ try:
     DATABASE_URL = os.environ.get('DATABASE_URL')
     
     if DATABASE_URL:
-        # Create engine and base
-        engine = create_engine(DATABASE_URL)
+        # Create engine with connection pooling and SSL handling
+        engine = create_engine(
+            DATABASE_URL,
+            pool_size=5,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=1800,  # Recycle connections every 30 minutes
+            connect_args={
+                "sslmode": "prefer",
+                "connect_timeout": 10
+            }
+        )
         
         # Try to create tables
         Base.metadata.create_all(engine)
@@ -66,9 +76,10 @@ def get_db_session():
         return None
 
 def save_analysis(filename, file_size, file_type, entropy_value, metadata, thumbnail=None):
-    """Save analysis results to database."""
+    """Save analysis results to database with robust error handling."""
+    global DB_AVAILABLE
+    
     if not DB_AVAILABLE:
-        print("Database not available, skipping analysis save")
         return None
         
     session = None
@@ -95,9 +106,13 @@ def save_analysis(filename, file_size, file_type, entropy_value, metadata, thumb
         session.commit()
         return analysis.id
     except Exception as e:
-        print(f"Error saving analysis to database: {str(e)}")
+        # Silently handle database errors - don't spam user with DB issues
         if session:
-            session.rollback()
+            try:
+                session.rollback()
+            except:
+                pass
+        DB_AVAILABLE = False  # Disable database for rest of session if failing
         return None
     finally:
         if session:
