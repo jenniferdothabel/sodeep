@@ -16,6 +16,10 @@ from utils.database import (
     save_analysis, get_recent_analyses, get_analysis_by_id, DB_AVAILABLE
 )
 from utils.stego_detector import analyze_image_for_steganography
+from utils.stego_decoder import (
+    brute_force_decode, decode_lsb, decode_multi_bit_lsb, 
+    try_steghide_extract, extract_metadata_hidden_data
+)
 
 # Configure Streamlit page
 st.set_page_config(
@@ -124,6 +128,174 @@ if uploaded_file:
                     st.write("**Overall Likelihood:**", likelihood_percentage)
                     if hasattr(detection_result, 'explanation'):
                         st.write("**Analysis:**", detection_result.explanation)
+                        
+                    # Add extraction functionality if likelihood is high enough
+                    if likelihood >= 0.4:
+                        st.markdown("---")
+                        st.subheader("🔓 Hidden Content Extraction")
+                        st.write("The analysis suggests possible hidden data. Try these extraction methods:")
+                        
+                        col1, col2, col3 = st.columns(3)
+                        
+                        # Quick extraction buttons
+                        with col1:
+                            if st.button("🎯 Auto Extract", help="Try multiple methods automatically"):
+                                with st.spinner("Attempting automatic extraction..."):
+                                    try:
+                                        results = brute_force_decode(temp_path)
+                                        successful_results = [r for r in results if r.success and r.confidence > 0.3]
+                                        
+                                        if successful_results:
+                                            st.success(f"✅ Found {len(successful_results)} potential hidden content(s)!")
+                                            for i, result in enumerate(successful_results[:3]):  # Show top 3
+                                                st.write(f"**Method {i+1}: {result.method}** (Confidence: {result.confidence:.2f})")
+                                                
+                                                # Display extracted data
+                                                if result.data:
+                                                    try:
+                                                        # Try to decode as text first
+                                                        text_data = result.data.decode('utf-8', errors='ignore')
+                                                        if len(text_data.strip()) > 0 and all(ord(c) < 127 for c in text_data[:100]):
+                                                            st.text_area(f"Extracted Text {i+1}:", text_data[:1000], height=100)
+                                                        else:
+                                                            st.write(f"**Binary data found:** {len(result.data)} bytes")
+                                                            # Show hex preview
+                                                            hex_preview = ' '.join(f'{b:02x}' for b in result.data[:32])
+                                                            st.code(f"Hex preview: {hex_preview}{'...' if len(result.data) > 32 else ''}")
+                                                    except:
+                                                        st.write(f"**Binary data found:** {len(result.data)} bytes")
+                                        else:
+                                            st.warning("No clear hidden content found with automatic methods")
+                                    except Exception as e:
+                                        st.error(f"Extraction failed: {str(e)}")
+                        
+                        with col2:
+                            if st.button("🔍 LSB Extract", help="Extract using LSB steganography"):
+                                with st.spinner("Extracting LSB data..."):
+                                    try:
+                                        # Try different LSB configurations
+                                        best_result = None
+                                        best_confidence = 0
+                                        
+                                        for channel in range(3):  # RGB channels
+                                            for bit_plane in [0, 1]:  # LSB and second bit
+                                                result = decode_lsb(temp_path, bit_plane, channel)
+                                                if result.confidence > best_confidence:
+                                                    best_result = result
+                                                    best_confidence = result.confidence
+                                        
+                                        if best_result and best_result.confidence > 0.3:
+                                            st.success(f"✅ LSB extraction successful! (Confidence: {best_result.confidence:.2f})")
+                                            st.write(f"**Method:** {best_result.method}")
+                                            
+                                            if best_result.data:
+                                                try:
+                                                    text_data = best_result.data.decode('utf-8', errors='ignore')
+                                                    if len(text_data.strip()) > 0:
+                                                        st.text_area("Extracted LSB Text:", text_data[:1000], height=100)
+                                                    else:
+                                                        st.write(f"**Binary LSB data:** {len(best_result.data)} bytes")
+                                                except:
+                                                    st.write(f"**Binary LSB data:** {len(best_result.data)} bytes")
+                                        else:
+                                            st.warning("No clear LSB hidden content found")
+                                    except Exception as e:
+                                        st.error(f"LSB extraction failed: {str(e)}")
+                        
+                        with col3:
+                            if st.button("🛠️ Steghide Extract", help="Extract using Steghide tool"):
+                                with st.spinner("Attempting Steghide extraction..."):
+                                    try:
+                                        # Try with no password first
+                                        result = try_steghide_extract(temp_path, "")
+                                        
+                                        if result.success:
+                                            st.success("✅ Steghide extraction successful!")
+                                            if result.data:
+                                                try:
+                                                    text_data = result.data.decode('utf-8', errors='ignore')
+                                                    if len(text_data.strip()) > 0:
+                                                        st.text_area("Extracted Steghide Text:", text_data, height=100)
+                                                    else:
+                                                        st.write(f"**Binary data extracted:** {len(result.data)} bytes")
+                                                        # Offer download
+                                                        st.download_button(
+                                                            "Download extracted file",
+                                                            result.data,
+                                                            file_name="extracted_content.bin",
+                                                            mime="application/octet-stream"
+                                                        )
+                                                except:
+                                                    st.write(f"**Binary data extracted:** {len(result.data)} bytes")
+                                        else:
+                                            st.warning("No Steghide hidden content found (no password)")
+                                            
+                                            # Offer password input
+                                            password = st.text_input("Try with password:", type="password", key="steghide_pass")
+                                            if password and st.button("Extract with password", key="steghide_pass_btn"):
+                                                pass_result = try_steghide_extract(temp_path, password)
+                                                if pass_result.success:
+                                                    st.success("✅ Steghide extraction with password successful!")
+                                                    if pass_result.data:
+                                                        try:
+                                                            text_data = pass_result.data.decode('utf-8', errors='ignore')
+                                                            st.text_area("Extracted Text:", text_data, height=100)
+                                                        except:
+                                                            st.write(f"**Binary data extracted:** {len(pass_result.data)} bytes")
+                                                else:
+                                                    st.error("Password extraction failed")
+                                    except Exception as e:
+                                        st.error(f"Steghide extraction failed: {str(e)}")
+                        
+                        # Additional extraction methods
+                        if st.expander("🔬 Advanced Extraction Methods"):
+                            st.write("**Metadata Extraction:**")
+                            if st.button("Extract from Metadata", key="metadata_extract"):
+                                with st.spinner("Checking metadata for hidden data..."):
+                                    try:
+                                        result = extract_metadata_hidden_data(temp_path)
+                                        if result.success:
+                                            st.success("✅ Hidden data found in metadata!")
+                                            if result.data:
+                                                try:
+                                                    text_data = result.data.decode('utf-8', errors='ignore')
+                                                    st.text_area("Metadata Hidden Text:", text_data, height=100)
+                                                except:
+                                                    st.write(f"**Binary metadata:** {len(result.data)} bytes")
+                                        else:
+                                            st.info("No hidden data found in metadata")
+                                    except Exception as e:
+                                        st.error(f"Metadata extraction failed: {str(e)}")
+                            
+                            st.write("**Multi-bit LSB Extraction:**")
+                            bits_to_extract = st.selectbox("Number of bits to extract:", [1, 2, 3, 4], index=1)
+                            channel_to_extract = st.selectbox("Color channel:", ["Red (0)", "Green (1)", "Blue (2)"], index=0)
+                            channel_num = int(channel_to_extract.split("(")[1].split(")")[0])
+                            
+                            if st.button("Extract Multi-bit LSB", key="multibit_extract"):
+                                with st.spinner(f"Extracting {bits_to_extract}-bit LSB from {channel_to_extract.split('(')[0].strip()} channel..."):
+                                    try:
+                                        result = decode_multi_bit_lsb(temp_path, bits_to_extract, channel_num)
+                                        if result.success and result.confidence > 0.3:
+                                            st.success(f"✅ Multi-bit LSB extraction successful! (Confidence: {result.confidence:.2f})")
+                                            if result.data:
+                                                try:
+                                                    text_data = result.data.decode('utf-8', errors='ignore')
+                                                    if len(text_data.strip()) > 0:
+                                                        st.text_area("Extracted Multi-bit Text:", text_data[:1000], height=100)
+                                                    else:
+                                                        st.write(f"**Binary data:** {len(result.data)} bytes")
+                                                except:
+                                                    st.write(f"**Binary data:** {len(result.data)} bytes")
+                                        else:
+                                            st.warning("No clear hidden content found with multi-bit LSB")
+                                    except Exception as e:
+                                        st.error(f"Multi-bit LSB extraction failed: {str(e)}")
+                    
+                    elif likelihood >= 0.2:
+                        st.markdown("---")
+                        st.info("💡 Low-moderate steganography likelihood detected. You can still try extraction methods using the Message Extractor tool.")
+                        
                 else:
                     st.write("No detailed detection data available")
             
