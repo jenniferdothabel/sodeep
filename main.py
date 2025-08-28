@@ -20,6 +20,7 @@ from utils.stego_decoder import (
     brute_force_decode, decode_lsb, decode_multi_bit_lsb, 
     try_steghide_extract, extract_metadata_hidden_data
 )
+from utils.ai_assistant import SteganographyAssistant, get_investigation_suggestions
 
 # Configure Streamlit page
 st.set_page_config(
@@ -295,6 +296,104 @@ if uploaded_file:
                     elif likelihood >= 0.2:
                         st.markdown("---")
                         st.info("💡 Low-moderate steganography likelihood detected. You can still try extraction methods using the Message Extractor tool.")
+                
+                # Add AI Assistant Analysis
+                st.markdown("---")
+                st.subheader("🤖 AI Investigation Assistant")
+                
+                # Initialize AI assistant
+                try:
+                    ai_assistant = SteganographyAssistant()
+                    
+                    col1, col2 = st.columns([2, 1])
+                    
+                    with col1:
+                        if st.button("🔍 Get AI Analysis", help="Get expert analysis from AI assistant"):
+                            with st.spinner("AI is analyzing the detection results..."):
+                                try:
+                                    # Get any extracted content for analysis
+                                    sample_extracted = None
+                                    if likelihood >= 0.4:
+                                        try:
+                                            quick_results = brute_force_decode(temp_path)
+                                            successful = [r for r in quick_results if r.success and r.confidence > 0.3]
+                                            if successful:
+                                                sample_extracted = successful[0].data
+                                        except:
+                                            pass
+                                    
+                                    # Get AI analysis
+                                    ai_analysis = ai_assistant.analyze_detection_results(
+                                        detection_result, metadata, sample_extracted
+                                    )
+                                    
+                                    # Display AI insights
+                                    if ai_analysis:
+                                        st.success("🤖 AI Analysis Complete!")
+                                        
+                                        # Summary
+                                        st.write("**🎯 Summary:**")
+                                        st.info(ai_analysis.get("summary", "Analysis complete"))
+                                        
+                                        # Technical Analysis
+                                        if "technical_analysis" in ai_analysis:
+                                            st.write("**🔬 Technical Analysis:**")
+                                            st.write(ai_analysis["technical_analysis"])
+                                        
+                                        # Plain Language Explanation
+                                        if "plain_language" in ai_analysis:
+                                            st.write("**👤 In Simple Terms:**")
+                                            st.write(ai_analysis["plain_language"])
+                                        
+                                        # Recommendations
+                                        if "investigation_recommendations" in ai_analysis:
+                                            st.write("**📋 Recommended Next Steps:**")
+                                            for i, rec in enumerate(ai_analysis["investigation_recommendations"][:5], 1):
+                                                st.write(f"{i}. {rec}")
+                                        
+                                        # Risk Assessment
+                                        if "risk_assessment" in ai_analysis:
+                                            risk_level = ai_analysis["risk_assessment"].lower()
+                                            if "high" in risk_level:
+                                                st.error(f"🔴 **Risk Level:** {ai_analysis['risk_assessment']}")
+                                            elif "medium" in risk_level:
+                                                st.warning(f"🟡 **Risk Level:** {ai_analysis['risk_assessment']}")
+                                            else:
+                                                st.success(f"🟢 **Risk Level:** {ai_analysis['risk_assessment']}")
+                                        
+                                        # Potential Techniques
+                                        if "potential_techniques" in ai_analysis:
+                                            st.write("**🎭 Suspected Techniques:**")
+                                            techniques = ai_analysis["potential_techniques"]
+                                            if isinstance(techniques, list):
+                                                for tech in techniques[:3]:
+                                                    st.write(f"• {tech}")
+                                    
+                                except Exception as e:
+                                    st.error(f"AI analysis failed: {str(e)}")
+                                    # Fallback to simple suggestions
+                                    suggestions = get_investigation_suggestions(likelihood, detection_result.indicators)
+                                    st.write("**💡 Investigation Suggestions:**")
+                                    for suggestion in suggestions:
+                                        st.write(f"• {suggestion}")
+                    
+                    with col2:
+                        st.write("**Quick Insights:**")
+                        suggestions = get_investigation_suggestions(likelihood, detection_result.indicators if hasattr(detection_result, 'indicators') else {})
+                        for suggestion in suggestions[:4]:
+                            st.write(f"• {suggestion}")
+                        
+                        if likelihood >= 0.4:
+                            st.write("")
+                            st.markdown("**🎯 Priority Actions:**")
+                            st.write("1. Extract hidden content")
+                            st.write("2. Analyze extracted data")
+                            st.write("3. Check file provenance")
+                        
+                except ImportError:
+                    st.warning("🤖 AI Assistant requires OpenAI API access. Analysis features limited.")
+                except Exception as e:
+                    st.error(f"AI Assistant initialization failed: {str(e)}")
                         
                 else:
                     st.write("No detailed detection data available")

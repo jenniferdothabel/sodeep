@@ -32,6 +32,10 @@ args = "Message Extractor"
 task = "workflow.run"
 args = "Test Image Creator"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "API Server"
+
 [[workflows.workflow]]
 name = "Streamlit App"
 author = "agent"
@@ -68,6 +72,18 @@ task = "shell.exec"
 args = "streamlit run create_test_images.py --server.address=0.0.0.0 --server.port=5004"
 waitForPort = 5004
 
+[[workflows.workflow]]
+name = "API Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python api_server.py"
+waitForPort = 5005
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[ports]]
 localPort = 5000
 
@@ -90,3 +106,6 @@ externalPort = 3002
 [[ports]]
 localPort = 8080
 externalPort = 8080
+
+[agent]
+integrations = ["python_openai==1.0.0"]
