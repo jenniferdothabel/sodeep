@@ -1,0 +1,500 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "DEEP ANAL Steganography Analysis API",
+    "description": "Advanced steganography detection and hidden content extraction API. Analyze images for concealed data using forensic-grade algorithms, LSB detection, metadata analysis, and AI-powered insights. Supports PNG and JPEG formats with comprehensive extraction capabilities.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "DEEP ANAL Support",
+      "email": "support@deepanal.ai"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://your-replit-url.replit.app",
+      "description": "Production DEEP ANAL API Server"
+    }
+  ],
+  "paths": {
+    "/api/analyze": {
+      "post": {
+        "summary": "Comprehensive Steganography Analysis",
+        "description": "Performs complete steganography analysis including detection, content extraction, and AI-powered forensic insights. Returns detailed technical analysis, risk assessment, and investigation recommendations.",
+        "operationId": "analyzeImageForSteganography",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file to analyze (PNG or JPEG format, max 16MB)"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "analysis_summary": {
+                      "type": "object",
+                      "properties": {
+                        "filename": {
+                          "type": "string",
+                          "description": "Original filename"
+                        },
+                        "file_size": {
+                          "type": "integer",
+                          "description": "File size in bytes"
+                        },
+                        "entropy": {
+                          "type": "number",
+                          "description": "File entropy value (0-8)"
+                        },
+                        "steganography_likelihood": {
+                          "type": "number",
+                          "description": "Probability of hidden content (0.0-1.0)"
+                        },
+                        "likelihood_percentage": {
+                          "type": "string",
+                          "description": "Formatted percentage (e.g., '67.3%')"
+                        },
+                        "risk_level": {
+                          "type": "string",
+                          "enum": ["low", "medium", "high"],
+                          "description": "Security risk assessment"
+                        }
+                      }
+                    },
+                    "detection_details": {
+                      "type": "object",
+                      "properties": {
+                        "indicators": {
+                          "type": "object",
+                          "description": "Individual detection test results with scores and weights"
+                        },
+                        "explanation": {
+                          "type": "string",
+                          "description": "Technical explanation of findings"
+                        },
+                        "techniques": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Suspected steganography techniques"
+                        }
+                      }
+                    },
+                    "extracted_content": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "method": {
+                            "type": "string",
+                            "description": "Extraction method used"
+                          },
+                          "confidence": {
+                            "type": "number",
+                            "description": "Confidence in extraction result (0.0-1.0)"
+                          },
+                          "content_type": {
+                            "type": "string",
+                            "enum": ["text", "binary"],
+                            "description": "Type of extracted content"
+                          },
+                          "content": {
+                            "type": "string",
+                            "description": "Extracted text content (if text type)"
+                          },
+                          "content_size": {
+                            "type": "integer",
+                            "description": "Size of binary content (if binary type)"
+                          },
+                          "content_preview": {
+                            "type": "string",
+                            "description": "Hex preview of binary content"
+                          }
+                        }
+                      },
+                      "description": "Successfully extracted hidden content"
+                    },
+                    "ai_insights": {
+                      "type": "object",
+                      "properties": {
+                        "summary": {
+                          "type": "string",
+                          "description": "AI-generated executive summary"
+                        },
+                        "technical_analysis": {
+                          "type": "string",
+                          "description": "Technical interpretation of findings"
+                        },
+                        "plain_language": {
+                          "type": "string",
+                          "description": "Non-technical explanation for general users"
+                        },
+                        "investigation_recommendations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Specific next steps for investigation"
+                        },
+                        "potential_techniques": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Likely steganography methods identified"
+                        },
+                        "risk_assessment": {
+                          "type": "string",
+                          "description": "Security risk evaluation and implications"
+                        }
+                      }
+                    },
+                    "recommendations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Actionable recommendations for investigation"
+                    },
+                    "metadata_summary": {
+                      "type": "object",
+                      "properties": {
+                        "total_fields": {
+                          "type": "integer",
+                          "description": "Number of metadata fields found"
+                        },
+                        "suspicious_fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Metadata fields that may contain hidden data"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["analysis_summary", "detection_details", "ai_insights"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or unsupported file format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error description"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Analysis failed due to server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error description"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Analysis"]
+      }
+    },
+    "/api/quick-scan": {
+      "post": {
+        "summary": "Quick Steganography Detection Scan",
+        "description": "Performs fast detection-only analysis to quickly assess if an image likely contains hidden data. No content extraction performed for speed.",
+        "operationId": "quickScanImage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file to scan (PNG or JPEG)"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quick scan completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "filename": {
+                      "type": "string",
+                      "description": "Original filename"
+                    },
+                    "file_size": {
+                      "type": "integer",
+                      "description": "File size in bytes"
+                    },
+                    "entropy": {
+                      "type": "number",
+                      "description": "File entropy measurement"
+                    },
+                    "steganography_likelihood": {
+                      "type": "number",
+                      "description": "Probability of hidden content (0.0-1.0)"
+                    },
+                    "likelihood_percentage": {
+                      "type": "string",
+                      "description": "Human-readable percentage"
+                    },
+                    "risk_assessment": {
+                      "type": "string",
+                      "enum": ["low", "medium", "high"],
+                      "description": "Risk level based on likelihood"
+                    },
+                    "explanation": {
+                      "type": "string",
+                      "description": "Brief explanation of findings"
+                    },
+                    "recommended_action": {
+                      "type": "string",
+                      "enum": ["monitor", "detailed_analysis", "immediate_extraction"],
+                      "description": "Suggested next step based on findings"
+                    }
+                  },
+                  "required": ["steganography_likelihood", "risk_assessment", "recommended_action"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Scan failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Detection"]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "API Health Check",
+        "description": "Check if the DEEP ANAL API service is running and operational",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Service is healthy and operational",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": ["healthy"],
+                      "description": "Service status"
+                    },
+                    "service": {
+                      "type": "string",
+                      "description": "Service name"
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "API version"
+                    },
+                    "capabilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Available service capabilities"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Monitoring"]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisResult": {
+        "type": "object",
+        "description": "Complete steganography analysis result",
+        "properties": {
+          "analysis_summary": {
+            "$ref": "#/components/schemas/AnalysisSummary"
+          },
+          "detection_details": {
+            "$ref": "#/components/schemas/DetectionDetails"
+          },
+          "extracted_content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtractedContent"
+            }
+          },
+          "ai_insights": {
+            "$ref": "#/components/schemas/AIInsights"
+          }
+        }
+      },
+      "AnalysisSummary": {
+        "type": "object",
+        "properties": {
+          "filename": { "type": "string" },
+          "file_size": { "type": "integer" },
+          "entropy": { "type": "number" },
+          "steganography_likelihood": { "type": "number" },
+          "likelihood_percentage": { "type": "string" },
+          "risk_level": { 
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          }
+        }
+      },
+      "DetectionDetails": {
+        "type": "object",
+        "properties": {
+          "indicators": { "type": "object" },
+          "explanation": { "type": "string" },
+          "techniques": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "ExtractedContent": {
+        "type": "object",
+        "properties": {
+          "method": { "type": "string" },
+          "confidence": { "type": "number" },
+          "content_type": {
+            "type": "string",
+            "enum": ["text", "binary"]
+          },
+          "content": { "type": "string" },
+          "content_size": { "type": "integer" },
+          "content_preview": { "type": "string" }
+        }
+      },
+      "AIInsights": {
+        "type": "object",
+        "properties": {
+          "summary": { "type": "string" },
+          "technical_analysis": { "type": "string" },
+          "plain_language": { "type": "string" },
+          "investigation_recommendations": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "potential_techniques": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "risk_assessment": { "type": "string" }
+        }
+      },
+      "QuickScanResult": {
+        "type": "object",
+        "properties": {
+          "steganography_likelihood": { "type": "number" },
+          "risk_assessment": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "recommended_action": {
+            "type": "string",
+            "enum": ["monitor", "detailed_analysis", "immediate_extraction"]
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message describing what went wrong"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Analysis",
+      "description": "Comprehensive steganography analysis and content extraction"
+    },
+    {
+      "name": "Detection",
+      "description": "Quick detection and scanning operations"
+    },
+    {
+      "name": "Monitoring",
+      "description": "Service health and monitoring endpoints"
+    }
+  ]
+}
