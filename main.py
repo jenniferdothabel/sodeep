@@ -22,6 +22,162 @@ from utils.stego_decoder import (
 )
 from utils.ai_assistant import SteganographyAssistant, get_investigation_suggestions
 
+def generate_detection_report(filename, detection_result, metadata, likelihood):
+    """Generate comprehensive detection report for download"""
+    import datetime
+    
+    report = {
+        "analysis_metadata": {
+            "filename": filename,
+            "analysis_timestamp": datetime.datetime.now().isoformat(),
+            "analysis_version": "DEEP ANAL v1.0",
+            "analysis_type": "steganography_detection"
+        },
+        "detection_summary": {
+            "steganography_likelihood": float(likelihood),
+            "likelihood_percentage": f"{likelihood * 100:.1f}%",
+            "risk_level": "high" if likelihood >= 0.7 else "medium" if likelihood >= 0.3 else "low"
+        },
+        "detection_details": {},
+        "file_metadata": metadata,
+        "technical_indicators": {}
+    }
+    
+    # Add detection details if available
+    if hasattr(detection_result, 'indicators'):
+        report["technical_indicators"] = detection_result.indicators
+    
+    if hasattr(detection_result, 'explanation'):
+        report["detection_details"]["explanation"] = detection_result.explanation
+    
+    if hasattr(detection_result, 'techniques'):
+        report["detection_details"]["suspected_techniques"] = detection_result.techniques
+    
+    # Add file analysis data
+    try:
+        if 'File Size' in metadata:
+            report["file_analysis"] = {
+                "file_size_bytes": metadata.get('File Size', 'Unknown'),
+                "image_dimensions": f"{metadata.get('Image Width', 'N/A')} x {metadata.get('Image Height', 'N/A')}",
+                "color_space": metadata.get('Color Space', 'Unknown'),
+                "compression": metadata.get('Compression', 'Unknown')
+            }
+    except:
+        pass
+    
+    return report
+
+def generate_text_report(filename, detection_result, metadata, likelihood):
+    """Generate human-readable text report"""
+    import datetime
+    
+    report_lines = [
+        "=" * 60,
+        "DEEP ANAL - STEGANOGRAPHY ANALYSIS REPORT",
+        "=" * 60,
+        "",
+        f"Analysis Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"File Analyzed: {filename}",
+        f"Analysis Tool: DEEP ANAL v1.0",
+        "",
+        "DETECTION SUMMARY",
+        "-" * 20,
+        f"Steganography Likelihood: {likelihood * 100:.1f}%",
+        f"Risk Level: {'HIGH' if likelihood >= 0.7 else 'MEDIUM' if likelihood >= 0.3 else 'LOW'}",
+        "",
+        "INTERPRETATION",
+        "-" * 15,
+    ]
+    
+    # Add interpretation based on likelihood
+    if likelihood >= 0.7:
+        report_lines.extend([
+            "⚠️  HIGH PROBABILITY of hidden content detected!",
+            "   This image very likely contains steganographic data.",
+            "   Immediate investigation recommended.",
+        ])
+    elif likelihood >= 0.3:
+        report_lines.extend([
+            "⚡ MODERATE PROBABILITY of hidden content detected.",
+            "   This image may contain steganographic data.",
+            "   Further analysis recommended.",
+        ])
+    else:
+        report_lines.extend([
+            "✅ LOW PROBABILITY of steganographic content.",
+            "   This image appears to be clean of hidden data.",
+            "   Standard monitoring sufficient.",
+        ])
+    
+    report_lines.extend([
+        "",
+        "FILE METADATA",
+        "-" * 13,
+    ])
+    
+    # Add key metadata
+    for key, value in metadata.items():
+        if key in ['File Size', 'Image Width', 'Image Height', 'Color Space', 'Compression']:
+            report_lines.append(f"{key}: {value}")
+    
+    # Add technical details if available
+    if hasattr(detection_result, 'indicators'):
+        report_lines.extend([
+            "",
+            "TECHNICAL INDICATORS",
+            "-" * 19,
+        ])
+        for indicator, details in detection_result.indicators.items():
+            if isinstance(details, dict):
+                score = details.get('score', 'N/A')
+                weight = details.get('weight', 'N/A')
+                report_lines.append(f"{indicator}: Score={score}, Weight={weight}")
+    
+    # Add explanation if available
+    if hasattr(detection_result, 'explanation'):
+        report_lines.extend([
+            "",
+            "ANALYSIS EXPLANATION",
+            "-" * 19,
+            detection_result.explanation,
+        ])
+    
+    report_lines.extend([
+        "",
+        "RECOMMENDATIONS",
+        "-" * 15,
+    ])
+    
+    if likelihood >= 0.7:
+        report_lines.extend([
+            "1. Immediately extract hidden content using specialized tools",
+            "2. Analyze extracted data for sensitive information",
+            "3. Investigate source and distribution of this image",
+            "4. Consider security implications and containment",
+        ])
+    elif likelihood >= 0.3:
+        report_lines.extend([
+            "1. Run additional steganography detection tools",
+            "2. Attempt content extraction with various methods",
+            "3. Monitor for additional suspicious images",
+            "4. Document findings for security review",
+        ])
+    else:
+        report_lines.extend([
+            "1. File appears clean - no immediate action required",
+            "2. Continue standard security monitoring",
+            "3. Retain analysis results for audit trail",
+        ])
+    
+    report_lines.extend([
+        "",
+        "=" * 60,
+        "End of Report",
+        "=" * 60,
+    ])
+    
+    return "\n".join(report_lines)
+
 # Configure Streamlit page
 st.set_page_config(
     page_title="DEEP ANAL: Steganography Analysis",
@@ -397,6 +553,52 @@ if uploaded_file:
                         
                 else:
                     st.write("No detailed detection data available")
+                
+                # Add download button for results
+                st.markdown("---")
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    if st.button("📥 Download Detection Report", help="Download comprehensive analysis results"):
+                        try:
+                            # Generate comprehensive report
+                            report_data = generate_detection_report(
+                                uploaded_file.name,
+                                detection_result,
+                                metadata,
+                                likelihood
+                            )
+                            
+                            # Convert to JSON
+                            import json
+                            report_json = json.dumps(report_data, indent=2, ensure_ascii=False)
+                            
+                            # Offer download
+                            st.download_button(
+                                label="📄 Download JSON Report",
+                                data=report_json,
+                                file_name=f"steganography_analysis_{uploaded_file.name.rsplit('.', 1)[0]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                                mime="application/json",
+                                help="Download detailed analysis results as JSON file"
+                            )
+                            
+                            # Also offer text format
+                            text_report = generate_text_report(
+                                uploaded_file.name,
+                                detection_result,
+                                metadata,
+                                likelihood
+                            )
+                            
+                            st.download_button(
+                                label="📝 Download Text Report",
+                                data=text_report,
+                                file_name=f"steganography_analysis_{uploaded_file.name.rsplit('.', 1)[0]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                                mime="text/plain",
+                                help="Download human-readable analysis report"
+                            )
+                            
+                        except Exception as e:
+                            st.error(f"Failed to generate report: {str(e)}")
             
             with tab3:
                 st.subheader("File Metadata")
