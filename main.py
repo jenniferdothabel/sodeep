@@ -2,7 +2,7 @@ import streamlit as st
 import tempfile
 import os
 import json
-import datetime
+from datetime import datetime
 from pathlib import Path
 from utils.file_analysis import (
     get_file_metadata, extract_strings, analyze_file_structure,
@@ -40,12 +40,11 @@ def save_extracted_binary(data, method_name, method_index=None):
 
 def generate_detection_report(filename, detection_result, metadata, likelihood):
     """Generate comprehensive detection report for download"""
-    import datetime
     
     report = {
         "analysis_metadata": {
             "filename": filename,
-            "analysis_timestamp": datetime.datetime.now().isoformat(),
+            "analysis_timestamp": datetime.now().isoformat(),
             "analysis_version": "DEEP ANAL v1.0",
             "analysis_type": "steganography_detection"
         },
@@ -85,14 +84,13 @@ def generate_detection_report(filename, detection_result, metadata, likelihood):
 
 def generate_text_report(filename, detection_result, metadata, likelihood):
     """Generate human-readable text report"""
-    import datetime
     
     report_lines = [
         "=" * 60,
         "DEEP ANAL - STEGANOGRAPHY ANALYSIS REPORT",
         "=" * 60,
         "",
-        f"Analysis Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Analysis Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"File Analyzed: {filename}",
         f"Analysis Tool: DEEP ANAL v1.0",
         "",
@@ -631,7 +629,6 @@ if uploaded_file:
                             )
                             
                             # Convert to JSON
-                            import json
                             report_json = json.dumps(report_data, indent=2, ensure_ascii=False)
                             
                             # Offer download
