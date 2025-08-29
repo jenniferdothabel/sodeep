@@ -204,12 +204,234 @@ st.set_page_config(
 st.title("🔍 DEEP ANAL")
 st.subheader("Steganography Analysis Platform")
 
-# File upload
-uploaded_file = st.file_uploader(
-    "Drop your file here",
-    type=['png', 'jpg', 'jpeg'],
-    help="Supported formats: PNG, JPEG"
+# Upload mode selection
+upload_mode = st.radio(
+    "Select Upload Mode:",
+    ["🔍 Single File Analysis", "📊 Batch Scan (Multiple Files)"],
+    horizontal=True
 )
+
+if upload_mode == "🔍 Single File Analysis":
+    # Single file upload
+    uploaded_file = st.file_uploader(
+        "Drop your file here",
+        type=['png', 'jpg', 'jpeg'],
+        help="Supported formats: PNG, JPEG"
+    )
+else:
+    # Multi-file upload for batch processing
+    st.write("**Option 1: Upload Multiple Images**")
+    uploaded_files = st.file_uploader(
+        "Drop multiple image files here",
+        type=['png', 'jpg', 'jpeg'],
+        accept_multiple_files=True,
+        help="Upload multiple images to quickly scan for steganography likelihood"
+    )
+    
+    st.write("**Option 2: Upload ZIP Archive**")
+    uploaded_zip = st.file_uploader(
+        "Drop a ZIP file containing images",
+        type=['zip'],
+        help="Upload a ZIP archive containing PNG/JPEG images for batch processing"
+    )
+    
+    # Process ZIP file if uploaded
+    if uploaded_zip:
+        import zipfile
+        import io
+        
+        try:
+            with zipfile.ZipFile(io.BytesIO(uploaded_zip.getvalue())) as zip_ref:
+                # Extract image files from ZIP
+                image_files = []
+                supported_extensions = ('.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG')
+                
+                for file_info in zip_ref.filelist:
+                    if file_info.filename.endswith(supported_extensions) and not file_info.is_dir():
+                        try:
+                            file_data = zip_ref.read(file_info.filename)
+                            # Create a file-like object that mimics uploaded_file
+                            class ZipImageFile:
+                                def __init__(self, name, data):
+                                    self.name = name
+                                    self.data = data
+                                
+                                def read(self):
+                                    return self.data
+                                
+                                def getvalue(self):
+                                    return self.data
+                            
+                            image_files.append(ZipImageFile(file_info.filename, file_data))
+                        except Exception as e:
+                            st.warning(f"Failed to extract {file_info.filename}: {str(e)}")
+                
+                if image_files:
+                    st.success(f"📦 Extracted {len(image_files)} images from ZIP archive")
+                    uploaded_files = image_files  # Use extracted files for batch processing
+                else:
+                    st.error("No supported image files found in ZIP archive")
+                    uploaded_files = None
+                    
+        except zipfile.BadZipFile:
+            st.error("Invalid ZIP file. Please upload a valid ZIP archive.")
+            uploaded_files = None
+        except Exception as e:
+            st.error(f"Error processing ZIP file: {str(e)}")
+            uploaded_files = None
+    
+    if uploaded_files:
+        st.info(f"📁 Ready to scan {len(uploaded_files)} files")
+        
+        if st.button("🚀 Start Batch Scan", type="primary"):
+            # Process files in batch
+            batch_results = []
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            for i, uploaded_file in enumerate(uploaded_files):
+                status_text.text(f"Scanning {uploaded_file.name}... ({i+1}/{len(uploaded_files)})")
+                
+                try:
+                    # Create temporary file
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_file.name)[1]) as tmp_file:
+                        tmp_file.write(uploaded_file.read())
+                        temp_path = tmp_file.name
+                    
+                    # Quick detection analysis
+                    detection_result = analyze_image_for_steganography(temp_path)
+                    metadata = get_file_metadata(temp_path)
+                    
+                    if detection_result and hasattr(detection_result, 'likelihood'):
+                        likelihood = detection_result.likelihood
+                    else:
+                        likelihood = 0.0
+                    
+                    # Store result
+                    batch_results.append({
+                        "Filename": uploaded_file.name,
+                        "Likelihood": likelihood,
+                        "Percentage": f"{likelihood * 100:.1f}%",
+                        "Risk Level": "🔴 High" if likelihood >= 0.7 else "🟡 Medium" if likelihood >= 0.3 else "🟢 Low",
+                        "File Size": f"{len(uploaded_file.getvalue()) / 1024:.1f} KB"
+                    })
+                    
+                    # Cleanup
+                    try:
+                        os.unlink(temp_path)
+                    except:
+                        pass
+                        
+                except Exception as e:
+                    batch_results.append({
+                        "Filename": uploaded_file.name,
+                        "Likelihood": 0.0,
+                        "Percentage": "Error",
+                        "Risk Level": "❌ Failed",
+                        "File Size": f"{len(uploaded_file.getvalue()) / 1024:.1f} KB"
+                    })
+                
+                # Update progress
+                progress_bar.progress((i + 1) / len(uploaded_files))
+            
+            # Clear status
+            status_text.empty()
+            progress_bar.empty()
+            
+            # Sort by likelihood (high to low)
+            batch_results.sort(key=lambda x: x["Likelihood"], reverse=True)
+            
+            # Display results
+            st.success(f"✅ Batch scan complete! Processed {len(uploaded_files)} files")
+            
+            # Summary statistics
+            col1, col2, col3, col4 = st.columns(4)
+            
+            high_risk = len([r for r in batch_results if r["Likelihood"] >= 0.7])
+            medium_risk = len([r for r in batch_results if 0.3 <= r["Likelihood"] < 0.7])
+            low_risk = len([r for r in batch_results if r["Likelihood"] < 0.3])
+            
+            with col1:
+                st.metric("🔴 High Risk", high_risk)
+            with col2:
+                st.metric("🟡 Medium Risk", medium_risk)
+            with col3:
+                st.metric("🟢 Low Risk", low_risk)
+            with col4:
+                avg_likelihood = sum([r["Likelihood"] for r in batch_results]) / len(batch_results) if batch_results else 0
+                st.metric("📊 Avg Likelihood", f"{avg_likelihood * 100:.1f}%")
+            
+            st.markdown("---")
+            st.subheader("📋 Scan Results (Sorted by Likelihood)")
+            
+            # Create DataFrame and display
+            import pandas as pd
+            df = pd.DataFrame([{k: v for k, v in result.items() if k != "Likelihood"} for result in batch_results])
+            
+            # Style the dataframe
+            def highlight_risk(row):
+                if "🔴 High" in str(row["Risk Level"]):
+                    return ['background-color: rgba(255, 0, 0, 0.1)'] * len(row)
+                elif "🟡 Medium" in str(row["Risk Level"]):
+                    return ['background-color: rgba(255, 255, 0, 0.1)'] * len(row)
+                else:
+                    return ['background-color: rgba(0, 255, 0, 0.1)'] * len(row)
+            
+            styled_df = df.style.apply(highlight_risk, axis=1)
+            st.dataframe(styled_df, use_container_width=True, height=400)
+            
+            # Download batch results
+            st.markdown("---")
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                # CSV download
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="📄 Download Results (CSV)",
+                    data=csv,
+                    file_name=f"batch_steganography_scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+            
+            with col2:
+                # JSON download with full data
+                json_data = {
+                    "scan_metadata": {
+                        "scan_date": datetime.now().isoformat(),
+                        "total_files": len(uploaded_files),
+                        "high_risk_count": high_risk,
+                        "medium_risk_count": medium_risk,
+                        "low_risk_count": low_risk,
+                        "average_likelihood": avg_likelihood
+                    },
+                    "results": batch_results
+                }
+                json_str = json.dumps(json_data, indent=2)
+                st.download_button(
+                    label="📋 Download Full Report (JSON)",
+                    data=json_str,
+                    file_name=f"batch_steganography_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json"
+                )
+            
+            # High-risk file recommendations
+            high_risk_files = [r for r in batch_results if r["Likelihood"] >= 0.7]
+            if high_risk_files:
+                st.markdown("---")
+                st.subheader("🚨 High-Risk Files Detected")
+                st.warning(f"Found {len(high_risk_files)} files with high steganography likelihood. Immediate investigation recommended:")
+                
+                for file_result in high_risk_files[:5]:  # Show top 5
+                    st.write(f"• **{file_result['Filename']}** - {file_result['Percentage']} likelihood")
+                
+                st.info("💡 Tip: Use Single File Analysis mode to perform detailed extraction on these high-risk files.")
+        
+        # Exit early for batch mode
+        st.stop()
+
+# Single file upload (original functionality)
+uploaded_file = None
 
 if uploaded_file:
     # Create temporary file
