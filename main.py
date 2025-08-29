@@ -685,7 +685,34 @@ if uploaded_file:
                                 if s and len(s) >= 4 and len(s) <= 100:
                                     # Filter out strings that are mostly the same character
                                     if len(set(s)) > 1:
-                                        clean_strings.append(s)
+                                        # Filter out HTML/CSS/code-like strings
+                                        skip_string = False
+                                        
+                                        # Skip HTML tags and CSS
+                                        if any(pattern in s.lower() for pattern in [
+                                            '<div', '</div>', '<span', '</span>', 'style=', 'class=',
+                                            'padding:', 'margin:', 'background-color:', 'border:', 'font-',
+                                            'color:', 'rgba(', 'rgb(', '#00ffff', '#ff00ff',
+                                            'word-break:', 'overflow:', 'position:', 'display:'
+                                        ]):
+                                            skip_string = True
+                                        
+                                        # Skip strings that look like CSS values or hex colors
+                                        if s.startswith('#') and len(s) in [4, 7, 9]:  # hex colors
+                                            skip_string = True
+                                        
+                                        # Skip strings that are mostly punctuation or symbols
+                                        if len([c for c in s if c.isalnum()]) < len(s) * 0.5:
+                                            skip_string = True
+                                        
+                                        # Skip strings with common code patterns
+                                        if any(pattern in s for pattern in [
+                                            '();', '{', '}', '<=', '>=', '&&', '||', 'px;', 'em;', 'rem;'
+                                        ]):
+                                            skip_string = True
+                                        
+                                        if not skip_string:
+                                            clean_strings.append(s)
                             
                             if clean_strings:
                                 st.write(f"**Found {len(clean_strings)} meaningful strings:**")
