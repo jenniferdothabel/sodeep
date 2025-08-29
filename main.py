@@ -22,6 +22,22 @@ from utils.stego_decoder import (
 )
 from utils.ai_assistant import SteganographyAssistant, get_investigation_suggestions
 
+def save_extracted_binary(data, method_name, method_index=None):
+    """Save extracted binary data to a file for external analysis"""
+    try:
+        if method_index is None:
+            filename = "hidden_payload.bin"
+        else:
+            filename = f"hidden_payload_method{method_index}.bin"
+        
+        # Write raw binary data
+        with open(filename, "wb") as f:
+            f.write(data)
+        
+        return filename
+    except Exception as e:
+        return None
+
 def generate_detection_report(filename, detection_result, metadata, likelihood):
     """Generate comprehensive detection report for download"""
     import datetime
@@ -319,8 +335,19 @@ if uploaded_file:
                                                             # Show hex preview
                                                             hex_preview = ' '.join(f'{b:02x}' for b in result.data[:32])
                                                             st.code(f"Hex preview: {hex_preview}{'...' if len(result.data) > 32 else ''}")
+                                                            
+                                                            # Save binary data to file for external analysis
+                                                            saved_file = save_extracted_binary(result.data, result.method, i+1)
+                                                            if saved_file:
+                                                                st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                                st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                                     except:
                                                         st.write(f"**Binary data found:** {len(result.data)} bytes")
+                                                        # Save binary data to file for external analysis
+                                                        saved_file = save_extracted_binary(result.data, result.method, i+1)
+                                                        if saved_file:
+                                                            st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                            st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                         else:
                                             st.warning("No clear hidden content found with automatic methods")
                                     except Exception as e:
@@ -352,8 +379,18 @@ if uploaded_file:
                                                         st.text_area("Extracted LSB Text:", text_data[:1000], height=100)
                                                     else:
                                                         st.write(f"**Binary LSB data:** {len(best_result.data)} bytes")
+                                                        # Save binary data to file for external analysis
+                                                        saved_file = save_extracted_binary(best_result.data, "LSB", 2)
+                                                        if saved_file:
+                                                            st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                            st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                                 except:
                                                     st.write(f"**Binary LSB data:** {len(best_result.data)} bytes")
+                                                    # Save binary data to file for external analysis
+                                                    saved_file = save_extracted_binary(best_result.data, "LSB", 2)
+                                                    if saved_file:
+                                                        st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                        st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                         else:
                                             st.warning("No clear LSB hidden content found")
                                     except Exception as e:
@@ -375,6 +412,11 @@ if uploaded_file:
                                                         st.text_area("Extracted Steghide Text:", text_data, height=100)
                                                     else:
                                                         st.write(f"**Binary data extracted:** {len(result.data)} bytes")
+                                                        # Save binary data to file for external analysis
+                                                        saved_file = save_extracted_binary(result.data, "Steghide", 3)
+                                                        if saved_file:
+                                                            st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                            st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                                         # Offer download
                                                         st.download_button(
                                                             "Download extracted file",
@@ -399,6 +441,11 @@ if uploaded_file:
                                                             st.text_area("Extracted Text:", text_data, height=100)
                                                         except:
                                                             st.write(f"**Binary data extracted:** {len(pass_result.data)} bytes")
+                                                            # Save binary data to file for external analysis
+                                                            saved_file = save_extracted_binary(pass_result.data, "Steghide_Password", 4)
+                                                            if saved_file:
+                                                                st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                                st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                                 else:
                                                     st.error("Password extraction failed")
                                     except Exception as e:
@@ -419,6 +466,11 @@ if uploaded_file:
                                                     st.text_area("Metadata Hidden Text:", text_data, height=100)
                                                 except:
                                                     st.write(f"**Binary metadata:** {len(result.data)} bytes")
+                                                    # Save binary data to file for external analysis
+                                                    saved_file = save_extracted_binary(result.data, "Metadata", 5)
+                                                    if saved_file:
+                                                        st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                        st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                         else:
                                             st.info("No hidden data found in metadata")
                                     except Exception as e:
@@ -442,8 +494,18 @@ if uploaded_file:
                                                         st.text_area("Extracted Multi-bit Text:", text_data[:1000], height=100)
                                                     else:
                                                         st.write(f"**Binary data:** {len(result.data)} bytes")
+                                                        # Save binary data to file for external analysis
+                                                        saved_file = save_extracted_binary(result.data, "Multi_LSB", 6)
+                                                        if saved_file:
+                                                            st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                            st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                                 except:
                                                     st.write(f"**Binary data:** {len(result.data)} bytes")
+                                                    # Save binary data to file for external analysis
+                                                    saved_file = save_extracted_binary(result.data, "Multi_LSB", 6)
+                                                    if saved_file:
+                                                        st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
+                                                        st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
                                         else:
                                             st.warning("No clear hidden content found with multi-bit LSB")
                                     except Exception as e:
