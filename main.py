@@ -211,19 +211,20 @@ upload_mode = st.radio(
     horizontal=True
 )
 
+uploaded_file = None
 if upload_mode == "🔍 Single File Analysis":
     # Single file upload
     uploaded_file = st.file_uploader(
         "Drop your file here",
-        type=['png', 'jpg', 'jpeg'],
-        help="Supported formats: PNG, JPEG"
+        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif'],
+        help="Supported formats: PNG, JPEG, TIFF, BMP, WEBP, HEIC, GIF"
     )
 else:
     # Multi-file upload for batch processing
     st.write("**Option 1: Upload Multiple Images**")
     uploaded_files = st.file_uploader(
         "Drop multiple image files here",
-        type=['png', 'jpg', 'jpeg'],
+        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif'],
         accept_multiple_files=True,
         help="Upload multiple images to quickly scan for steganography likelihood"
     )
@@ -232,7 +233,7 @@ else:
     uploaded_zip = st.file_uploader(
         "Drop a ZIP file containing images",
         type=['zip'],
-        help="Upload a ZIP archive containing PNG/JPEG images for batch processing"
+        help="Upload a ZIP archive containing images (PNG, JPEG, TIFF, BMP, WEBP, HEIC, GIF) for batch processing"
     )
     
     # Process ZIP file if uploaded
@@ -244,7 +245,8 @@ else:
             with zipfile.ZipFile(io.BytesIO(uploaded_zip.getvalue())) as zip_ref:
                 # Extract image files from ZIP
                 image_files = []
-                supported_extensions = ('.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG')
+                supported_extensions = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp', '.heic', '.heif', '.gif',
+                                       '.PNG', '.JPG', '.JPEG', '.TIFF', '.TIF', '.BMP', '.WEBP', '.HEIC', '.HEIF', '.GIF')
                 
                 for file_info in zip_ref.filelist:
                     if file_info.filename.endswith(supported_extensions) and not file_info.is_dir():
@@ -808,7 +810,7 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                                 except Exception as e:
                                     st.error(f"AI analysis failed: {str(e)}")
                                     # Fallback to simple suggestions
-                                    suggestions = get_investigation_suggestions(likelihood, detection_result.indicators)
+                                    suggestions = get_investigation_suggestions(likelihood, detection_result.indicators if hasattr(detection_result, 'indicators') else {})
                                     st.write("**💡 Investigation Suggestions:**")
                                     for suggestion in suggestions:
                                         st.write(f"• {suggestion}")

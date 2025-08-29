@@ -108,7 +108,8 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Graceful Degradation**: Database-optional operation for reliability
 
 ## Changelog
-- June 15, 2025. Initial setup
+- August 29, 2025: Added extensive image format support (TIFF, HEIC, BMP, WEBP, GIF) and ZIP batch upload
+- June 15, 2025: Initial setup
 
 ## User Preferences
 
