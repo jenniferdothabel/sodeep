@@ -430,10 +430,8 @@ else:
         # Exit early for batch mode
         st.stop()
 
-# Single file upload (original functionality)
-uploaded_file = None
-
-if uploaded_file:
+# Continue with single file analysis if a file was uploaded
+if upload_mode == "🔍 Single File Analysis" and uploaded_file:
     # Create temporary file
     with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_file.name).suffix) as tmp_file:
         tmp_file.write(uploaded_file.getvalue())
