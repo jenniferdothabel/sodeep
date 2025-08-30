@@ -336,6 +336,254 @@
         "tags": ["Detection"]
       }
     },
+    "/api/ocr-extract": {
+      "post": {
+        "summary": "OCR Text Extraction with Steganographic Analysis",
+        "description": "Extract text from images using OCR and analyze for steganographic patterns like hidden messages in text",
+        "operationId": "ocrExtractText",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file for OCR processing (PNG or JPEG)"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OCR extraction completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "filename": {
+                      "type": "string",
+                      "description": "Original filename"
+                    },
+                    "ocr_results": {
+                      "type": "object",
+                      "properties": {
+                        "word_count": {
+                          "type": "integer",
+                          "description": "Number of words detected"
+                        },
+                        "average_confidence": {
+                          "type": "number",
+                          "description": "Average OCR confidence percentage"
+                        },
+                        "raw_text": {
+                          "type": "string",
+                          "description": "Extracted text content"
+                        },
+                        "text_length": {
+                          "type": "integer",
+                          "description": "Length of extracted text"
+                        }
+                      }
+                    },
+                    "steganography_analysis": {
+                      "type": "object",
+                      "properties": {
+                        "likelihood": {
+                          "type": "number",
+                          "description": "Likelihood of steganographic patterns (0.0-1.0)"
+                        },
+                        "indicators": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Detected steganographic indicators"
+                        }
+                      },
+                      "description": "Analysis of text for hidden patterns"
+                    },
+                    "suspicious_patterns": {
+                      "type": "boolean",
+                      "description": "Whether suspicious steganographic patterns were detected"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether OCR extraction was successful"
+                    }
+                  },
+                  "required": ["filename", "success"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "OCR extraction failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during OCR processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Analysis"]
+      }
+    },
+    "/api/xor-decode": {
+      "post": {
+        "summary": "XOR Decoding Analysis",
+        "description": "Perform comprehensive XOR analysis to decode potentially hidden data using various XOR keys and patterns",
+        "operationId": "xorDecodeAnalysis",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file for XOR analysis (PNG or JPEG)"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "XOR analysis completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "filename": {
+                      "type": "string",
+                      "description": "Original filename"
+                    },
+                    "total_results": {
+                      "type": "integer",
+                      "description": "Total number of XOR attempts made"
+                    },
+                    "successful_results": {
+                      "type": "integer",
+                      "description": "Number of potentially meaningful results found"
+                    },
+                    "xor_decoded_content": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "method": {
+                            "type": "string",
+                            "description": "XOR decoding method used"
+                          },
+                          "confidence": {
+                            "type": "number",
+                            "description": "Confidence in the decoded result (0.0-1.0)"
+                          },
+                          "success": {
+                            "type": "boolean",
+                            "description": "Whether decoding was successful"
+                          },
+                          "content_type": {
+                            "type": "string",
+                            "enum": ["text", "binary"],
+                            "description": "Type of decoded content"
+                          },
+                          "content": {
+                            "type": "string",
+                            "description": "Decoded text content (if text type)"
+                          },
+                          "content_size": {
+                            "type": "integer",
+                            "description": "Size of binary content (if binary type)"
+                          },
+                          "content_preview": {
+                            "type": "string",
+                            "description": "Hex preview of binary content"
+                          }
+                        }
+                      },
+                      "description": "Successfully decoded content using XOR"
+                    },
+                    "analysis_summary": {
+                      "type": "object",
+                      "properties": {
+                        "best_confidence": {
+                          "type": "number",
+                          "description": "Highest confidence score achieved"
+                        },
+                        "methods_tried": {
+                          "type": "integer",
+                          "description": "Number of XOR methods attempted"
+                        },
+                        "potential_hidden_data": {
+                          "type": "boolean",
+                          "description": "Whether potential hidden data was found"
+                        }
+                      },
+                      "description": "Summary of XOR analysis results"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether XOR analysis completed successfully"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Additional information about the analysis"
+                    }
+                  },
+                  "required": ["filename", "success"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request for XOR analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during XOR analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Analysis"]
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "API Health Check",

@@ -14,10 +14,10 @@ import json
 # Import our analysis modules
 from utils.file_analysis import (
     get_file_metadata, calculate_entropy, extract_strings, 
-    analyze_file_structure, run_zsteg
+    analyze_file_structure, run_zsteg, extract_text_with_ocr, analyze_text_for_steganography
 )
 from utils.stego_detector import analyze_image_for_steganography
-from utils.stego_decoder import brute_force_decode
+from utils.stego_decoder import brute_force_decode, extract_with_xor_analysis
 from utils.ai_assistant import SteganographyAssistant
 
 app = Flask(__name__)
@@ -214,6 +214,166 @@ def quick_scan():
             os.unlink(temp_path)
         return jsonify({"error": f"Quick scan failed: {str(e)}"}), 500
 
+@app.route('/api/ocr-extract', methods=['POST'])
+def ocr_extract():
+    """Extract text from images using OCR and analyze for steganographic patterns."""
+    try:
+        temp_path = None
+        
+        # Handle file input
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({"error": "No file provided"}), 400
+                
+            filename = secure_filename(file.filename)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as tmp_file:
+                file.save(tmp_file.name)
+                temp_path = tmp_file.name
+        elif 'image_base64' in request.json:
+            image_data = base64.b64decode(request.json['image_base64'])
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                tmp_file.write(image_data)
+                temp_path = tmp_file.name
+            filename = request.json.get('filename', 'uploaded_image.png')
+        else:
+            return jsonify({"error": "No image data provided"}), 400
+        
+        try:
+            # Perform OCR extraction
+            ocr_result = extract_text_with_ocr(temp_path)
+            
+            if "error" not in ocr_result:
+                # Analyze text for steganographic patterns
+                text_analysis = None
+                if ocr_result['raw_text']:
+                    text_analysis = analyze_text_for_steganography(ocr_result['raw_text'])
+                
+                response_data = {
+                    "filename": filename,
+                    "ocr_results": {
+                        "word_count": ocr_result['word_count'],
+                        "average_confidence": ocr_result['average_confidence'],
+                        "raw_text": ocr_result['raw_text'][:2000] if ocr_result['raw_text'] else None,  # Limit for API
+                        "text_length": len(ocr_result['raw_text']) if ocr_result['raw_text'] else 0
+                    },
+                    "steganography_analysis": text_analysis if text_analysis else None,
+                    "suspicious_patterns": text_analysis['likelihood'] > 0.3 if text_analysis else False,
+                    "success": True
+                }
+                
+                return jsonify(response_data)
+            else:
+                return jsonify({
+                    "filename": filename,
+                    "success": False,
+                    "error": ocr_result['error']
+                }), 400
+                
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+    except Exception as e:
+        if 'temp_path' in locals() and temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
+        return jsonify({"error": f"OCR extraction failed: {str(e)}"}), 500
+
+@app.route('/api/xor-decode', methods=['POST'])
+def xor_decode():
+    """Perform XOR analysis on images to find hidden data."""
+    try:
+        temp_path = None
+        
+        # Handle file input
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({"error": "No file provided"}), 400
+                
+            filename = secure_filename(file.filename)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as tmp_file:
+                file.save(tmp_file.name)
+                temp_path = tmp_file.name
+        elif 'image_base64' in request.json:
+            image_data = base64.b64decode(request.json['image_base64'])
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                tmp_file.write(image_data)
+                temp_path = tmp_file.name
+            filename = request.json.get('filename', 'uploaded_image.png')
+        else:
+            return jsonify({"error": "No image data provided"}), 400
+        
+        try:
+            # Perform XOR analysis
+            xor_results = extract_with_xor_analysis(temp_path)
+            
+            if xor_results:
+                successful_results = [r for r in xor_results if r.success and r.confidence > 0.3]
+                
+                # Format results for API response
+                formatted_results = []
+                for result in successful_results[:5]:  # Top 5 results
+                    result_data = {
+                        "method": result.method,
+                        "confidence": result.confidence,
+                        "success": result.success
+                    }
+                    
+                    if result.data:
+                        try:
+                            # Try to decode as text
+                            text_data = result.data.decode('utf-8', errors='ignore')
+                            if text_data.strip() and len([c for c in text_data if c.isprintable()]) / len(text_data) > 0.7:
+                                result_data["content_type"] = "text"
+                                result_data["content"] = text_data[:1000]  # Limit for API
+                            else:
+                                result_data["content_type"] = "binary"
+                                result_data["content_size"] = len(result.data)
+                                result_data["content_preview"] = result.data[:32].hex()
+                        except:
+                            result_data["content_type"] = "binary"
+                            result_data["content_size"] = len(result.data) if result.data else 0
+                            result_data["content_preview"] = result.data[:32].hex() if result.data else ""
+                    
+                    formatted_results.append(result_data)
+                
+                response_data = {
+                    "filename": filename,
+                    "total_results": len(xor_results),
+                    "successful_results": len(successful_results),
+                    "xor_decoded_content": formatted_results,
+                    "analysis_summary": {
+                        "best_confidence": max([r.confidence for r in successful_results]) if successful_results else 0,
+                        "methods_tried": len(xor_results),
+                        "potential_hidden_data": len(successful_results) > 0
+                    },
+                    "success": True
+                }
+                
+                return jsonify(response_data)
+            else:
+                return jsonify({
+                    "filename": filename,
+                    "total_results": 0,
+                    "successful_results": 0,
+                    "analysis_summary": {
+                        "potential_hidden_data": False,
+                        "methods_tried": 0
+                    },
+                    "success": True,
+                    "message": "No XOR patterns detected"
+                })
+                
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+    except Exception as e:
+        if 'temp_path' in locals() and temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
+        return jsonify({"error": f"XOR analysis failed: {str(e)}"}), 500
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint for monitoring."""
@@ -221,7 +381,7 @@ def health_check():
         "status": "healthy",
         "service": "DEEP ANAL Steganography API",
         "version": "1.0",
-        "capabilities": ["image_analysis", "steganography_detection", "content_extraction", "ai_analysis"]
+        "capabilities": ["image_analysis", "steganography_detection", "content_extraction", "ai_analysis", "ocr_extraction", "xor_decoding"]
     })
 
 @app.route('/.well-known/ai-plugin.json', methods=['GET'])
@@ -231,7 +391,7 @@ def ai_plugin_manifest():
         "schema_version": "v1",
         "name_for_model": "steganography_analyzer",
         "name_for_human": "DEEP ANAL Steganography Analyzer",
-        "description_for_model": "Analyze images for hidden data using advanced steganography detection. Can detect LSB steganography, metadata hiding, and extract hidden content from PNG and JPEG images.",
+        "description_for_model": "Analyze images for hidden data using advanced steganography detection. Can detect LSB steganography, metadata hiding, extract hidden content, perform OCR text extraction with pattern analysis, and XOR decoding from PNG and JPEG images.",
         "description_for_human": "Advanced steganography analysis tool that can detect and extract hidden data from images.",
         "auth": {
             "type": "none"
@@ -374,6 +534,112 @@ def openapi_spec():
                                                 "type": "string",
                                                 "description": "Suggested next step"
                                             }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/api/ocr-extract": {
+                "post": {
+                    "summary": "OCR text extraction with steganographic analysis",
+                    "description": "Extract text from images using OCR and analyze for steganographic patterns",
+                    "operationId": "ocrExtractText",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file": {
+                                            "type": "string",
+                                            "format": "binary",
+                                            "description": "Image file for OCR processing"
+                                        }
+                                    },
+                                    "required": ["file"]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "OCR extraction completed successfully",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "filename": {"type": "string"},
+                                            "ocr_results": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "word_count": {"type": "integer"},
+                                                    "average_confidence": {"type": "number"},
+                                                    "raw_text": {"type": "string"},
+                                                    "text_length": {"type": "integer"}
+                                                }
+                                            },
+                                            "steganography_analysis": {"type": "object"},
+                                            "suspicious_patterns": {"type": "boolean"}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/api/xor-decode": {
+                "post": {
+                    "summary": "XOR decoding analysis",
+                    "description": "Perform XOR analysis to decode potentially hidden data",
+                    "operationId": "xorDecodeAnalysis",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file": {
+                                            "type": "string",
+                                            "format": "binary",
+                                            "description": "Image file for XOR analysis"
+                                        }
+                                    },
+                                    "required": ["file"]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "XOR analysis completed successfully",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "filename": {"type": "string"},
+                                            "total_results": {"type": "integer"},
+                                            "successful_results": {"type": "integer"},
+                                            "xor_decoded_content": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "method": {"type": "string"},
+                                                        "confidence": {"type": "number"},
+                                                        "content_type": {"type": "string"},
+                                                        "content": {"type": "string"}
+                                                    }
+                                                }
+                                            },
+                                            "analysis_summary": {"type": "object"}
                                         }
                                     }
                                 }
