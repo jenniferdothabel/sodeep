@@ -14,6 +14,7 @@ import numpy as np
 import base64
 from pathlib import Path
 import json
+import itertools
 
 class DecoderResult:
     """Container for storing decoder results."""
@@ -555,5 +556,200 @@ def brute_force_decode(image_path, password_list=None):
     
     # Sort by confidence
     results.sort(key=lambda x: x.confidence, reverse=True)
+    
+    return results
+
+def xor_decode_data(data, key):
+    """XOR decode data with a given key."""
+    if isinstance(key, str):
+        key = key.encode()
+    if isinstance(data, str):
+        data = data.encode()
+    
+    result = bytearray()
+    key_len = len(key)
+    
+    for i, byte in enumerate(data):
+        result.append(byte ^ key[i % key_len])
+    
+    return bytes(result)
+
+def try_xor_decoding(data, max_key_length=16):
+    """Try various XOR keys to decode data."""
+    results = []
+    
+    if not data:
+        return results
+    
+    # Convert to bytes if string
+    if isinstance(data, str):
+        try:
+            data = data.encode('latin-1')
+        except:
+            return results
+    
+    # Try single-byte XOR keys (0-255)
+    for key_byte in range(1, 256):  # Skip 0 as it would return original data
+        try:
+            decoded = xor_decode_data(data, bytes([key_byte]))
+            
+            # Check if result looks like meaningful data
+            score = analyze_xor_result(decoded)
+            
+            if score > 0.3:  # Threshold for "interesting" results
+                result = DecoderResult(
+                    method=f"XOR Single Byte (key: {key_byte:02x})",
+                    data=decoded,
+                    success=True,
+                    confidence=score,
+                    info={"key": f"{key_byte:02x}", "key_type": "single_byte"}
+                )
+                results.append(result)
+        except:
+            continue
+    
+    # Try common multi-byte keys
+    common_keys = [
+        b"key", b"password", b"secret", b"hidden", b"steganography",
+        b"12345", b"abcd", b"test", b"flag", b"data"
+    ]
+    
+    for key in common_keys:
+        try:
+            decoded = xor_decode_data(data, key)
+            score = analyze_xor_result(decoded)
+            
+            if score > 0.3:
+                result = DecoderResult(
+                    method=f"XOR Multi-Byte (key: {key.decode('latin-1', errors='ignore')})",
+                    data=decoded,
+                    success=True,
+                    confidence=score,
+                    info={"key": key.decode('latin-1', errors='ignore'), "key_type": "multi_byte"}
+                )
+                results.append(result)
+        except:
+            continue
+    
+    # Try repeating pattern keys (AA, ABAB, ABCABC, etc.)
+    for pattern_len in range(2, min(max_key_length + 1, 5)):
+        for pattern in itertools.product(range(1, 256), repeat=pattern_len):
+            if len(results) > 50:  # Limit results to avoid overwhelming
+                break
+            
+            key = bytes(pattern)
+            try:
+                decoded = xor_decode_data(data, key)
+                score = analyze_xor_result(decoded)
+                
+                if score > 0.4:  # Higher threshold for pattern keys
+                    result = DecoderResult(
+                        method=f"XOR Pattern (key: {key.hex()})",
+                        data=decoded,
+                        success=True,
+                        confidence=score,
+                        info={"key": key.hex(), "key_type": "pattern"}
+                    )
+                    results.append(result)
+            except:
+                continue
+    
+    # Sort by confidence
+    results.sort(key=lambda x: x.confidence, reverse=True)
+    return results[:20]  # Return top 20 results
+
+def analyze_xor_result(data):
+    """Analyze XOR decoding result to determine if it's meaningful."""
+    if not data or len(data) == 0:
+        return 0.0
+    
+    score = 0.0
+    
+    try:
+        # Try to decode as text
+        text = data.decode('utf-8', errors='ignore')
+        
+        # Check for printable ASCII characters
+        printable_ratio = sum(1 for c in text if c.isprintable()) / len(text)
+        score += printable_ratio * 0.3
+        
+        # Check for common English words
+        words = text.lower().split()
+        common_words = ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use']
+        
+        if words:
+            common_word_ratio = sum(1 for word in words if word in common_words) / len(words)
+            score += common_word_ratio * 0.3
+        
+        # Check for flag patterns
+        flag_patterns = [r'flag\{.*\}', r'ctf\{.*\}', r'[a-zA-Z0-9]{20,}']
+        import re
+        for pattern in flag_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                score += 0.4
+                break
+        
+        # Check for structured data patterns
+        if '{' in text and '}' in text:
+            score += 0.1  # Possible JSON
+        if '<' in text and '>' in text:
+            score += 0.1  # Possible XML/HTML
+        
+    except:
+        pass
+    
+    # Check for binary patterns
+    try:
+        # Look for common file headers
+        headers = [
+            b'\x89PNG',  # PNG
+            b'\xff\xd8\xff',  # JPEG
+            b'GIF8',  # GIF
+            b'PK\x03\x04',  # ZIP
+            b'\x50\x4b',  # Another ZIP variant
+            b'%PDF',  # PDF
+        ]
+        
+        for header in headers:
+            if data.startswith(header):
+                score += 0.5
+                break
+    except:
+        pass
+    
+    return min(score, 1.0)
+
+def extract_with_xor_analysis(image_path):
+    """Extract data from image and try XOR decoding on various data sources."""
+    results = []
+    
+    try:
+        # Get LSB data and try XOR decoding
+        lsb_result = decode_lsb(image_path)
+        if lsb_result.data:
+            xor_results = try_xor_decoding(lsb_result.data)
+            for xor_result in xor_results:
+                xor_result.method = f"LSB + {xor_result.method}"
+                results.append(xor_result)
+        
+        # Try XOR on raw image data (sample)
+        img = Image.open(image_path)
+        pixels = np.array(img)
+        
+        # Sample some pixel data for XOR analysis
+        sample_data = pixels.flatten()[:1024]  # First 1024 bytes
+        xor_results = try_xor_decoding(sample_data.tobytes())
+        for xor_result in xor_results:
+            xor_result.method = f"Raw Pixels + {xor_result.method}"
+            results.append(xor_result)
+        
+    except Exception as e:
+        error_result = DecoderResult(
+            method="XOR Analysis",
+            success=False,
+            confidence=0.0,
+            info={"error": str(e)}
+        )
+        results.append(error_result)
     
     return results

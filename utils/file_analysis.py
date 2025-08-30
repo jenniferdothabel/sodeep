@@ -11,6 +11,13 @@ try:
 except ImportError:
     HAS_VIDEO_SUPPORT = False
 
+try:
+    import pytesseract
+    from PIL import Image
+    HAS_OCR_SUPPORT = True
+except ImportError:
+    HAS_OCR_SUPPORT = False
+
 def run_command(cmd, input_file):
     """Run a command and return its output."""
     try:
@@ -255,3 +262,117 @@ def save_video_frame_for_analysis(frame, temp_dir="/tmp"):
         
     except Exception as e:
         return None
+
+def extract_text_with_ocr(file_path):
+    """Extract text from image using OCR (Tesseract)."""
+    if not HAS_OCR_SUPPORT:
+        return {"error": "OCR support requires pytesseract library"}
+    
+    try:
+        # Open image with PIL
+        image = Image.open(file_path)
+        
+        # Convert to RGB if necessary
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Extract text using Tesseract
+        extracted_text = pytesseract.image_to_string(image)
+        
+        # Also get detailed data (confidence scores, etc.)
+        detailed_data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
+        
+        # Filter out low-confidence text
+        confident_text = []
+        confidences = []
+        
+        for i, conf in enumerate(detailed_data['conf']):
+            if int(conf) > 30:  # Only include text with >30% confidence
+                text = detailed_data['text'][i].strip()
+                if text:
+                    confident_text.append(text)
+                    confidences.append(int(conf))
+        
+        result = {
+            "raw_text": extracted_text.strip(),
+            "confident_text": " ".join(confident_text),
+            "word_count": len(confident_text),
+            "average_confidence": sum(confidences) / len(confidences) if confidences else 0,
+            "confidence_scores": confidences
+        }
+        
+        return result
+        
+    except Exception as e:
+        return {"error": f"OCR extraction failed: {str(e)}"}
+
+def analyze_text_for_steganography(text):
+    """Analyze extracted text for steganographic indicators."""
+    if not text or len(text.strip()) == 0:
+        return {"likelihood": 0.0, "indicators": []}
+    
+    indicators = []
+    likelihood = 0.0
+    
+    # Check for common steganographic patterns in text
+    
+    # 1. Binary strings
+    binary_pattern = r'\b[01]{8,}\b'
+    import re
+    binary_matches = re.findall(binary_pattern, text)
+    if binary_matches:
+        indicators.append(f"Binary sequences detected: {len(binary_matches)} patterns")
+        likelihood += 0.3
+    
+    # 2. Base64-like strings
+    base64_pattern = r'\b[A-Za-z0-9+/]{20,}={0,2}\b'
+    base64_matches = re.findall(base64_pattern, text)
+    if base64_matches:
+        indicators.append(f"Base64-like patterns detected: {len(base64_matches)} patterns")
+        likelihood += 0.4
+    
+    # 3. Hexadecimal strings
+    hex_pattern = r'\b[0-9A-Fa-f]{16,}\b'
+    hex_matches = re.findall(hex_pattern, text)
+    if hex_matches:
+        indicators.append(f"Hexadecimal sequences detected: {len(hex_matches)} patterns")
+        likelihood += 0.3
+    
+    # 4. Unusual character frequency
+    text_clean = ''.join(c for c in text if c.isalnum())
+    if len(text_clean) > 50:
+        char_freq = {}
+        for char in text_clean.lower():
+            char_freq[char] = char_freq.get(char, 0) + 1
+        
+        # Calculate character entropy
+        total_chars = len(text_clean)
+        entropy = 0
+        for count in char_freq.values():
+            prob = count / total_chars
+            entropy += -prob * np.log2(prob)
+        
+        if entropy > 4.0:  # High entropy suggests encoded data
+            indicators.append(f"High character entropy: {entropy:.2f}")
+            likelihood += 0.2
+    
+    # 5. Repeated patterns
+    words = text.split()
+    if len(words) > 10:
+        word_freq = {}
+        for word in words:
+            if len(word) > 3:
+                word_freq[word] = word_freq.get(word, 0) + 1
+        
+        # Check for unusual repetition
+        max_freq = max(word_freq.values()) if word_freq else 0
+        if max_freq > len(words) * 0.3:  # Word appears >30% of the time
+            indicators.append("Unusual word repetition detected")
+            likelihood += 0.2
+    
+    return {
+        "likelihood": min(likelihood, 1.0),
+        "indicators": indicators,
+        "text_length": len(text),
+        "clean_length": len(text_clean) if 'text_clean' in locals() else 0
+    }

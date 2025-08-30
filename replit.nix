@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.tesseract
     pkgs.ruby
     pkgs.foremost
     pkgs.binwalk

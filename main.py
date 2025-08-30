@@ -7,7 +7,8 @@ from pathlib import Path
 from utils.file_analysis import (
     get_file_metadata, extract_strings, analyze_file_structure,
     calculate_entropy, get_byte_frequency, get_hex_dump, run_zsteg,
-    is_video_file, extract_video_frames, analyze_video_metadata, save_video_frame_for_analysis
+    is_video_file, extract_video_frames, analyze_video_metadata, save_video_frame_for_analysis,
+    extract_text_with_ocr, analyze_text_for_steganography
 )
 from utils.visualizations import (
     create_entropy_plot, create_byte_frequency_plot, format_hex_dump,
@@ -19,7 +20,7 @@ from utils.database import (
 from utils.stego_detector import analyze_image_for_steganography
 from utils.stego_decoder import (
     brute_force_decode, decode_lsb, decode_multi_bit_lsb, 
-    try_steghide_extract, extract_metadata_hidden_data
+    try_steghide_extract, extract_metadata_hidden_data, extract_with_xor_analysis
 )
 from utils.ai_assistant import SteganographyAssistant, get_investigation_suggestions
 
@@ -706,6 +707,90 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                                                     st.error("Password extraction failed")
                                     except Exception as e:
                                         st.error(f"Steghide extraction failed: {str(e)}")
+                        
+                        # Additional extraction methods  
+                        st.markdown("---")
+                        col4, col5 = st.columns(2)
+                        
+                        with col4:
+                            if st.button("📝 OCR Extract", help="Extract text using Optical Character Recognition"):
+                                with st.spinner("Running OCR analysis..."):
+                                    try:
+                                        ocr_result = extract_text_with_ocr(temp_path)
+                                        
+                                        if "error" not in ocr_result:
+                                            st.success("✅ **OCR extraction completed!**")
+                                            
+                                            # Display OCR statistics
+                                            st.write(f"**Words found:** {ocr_result['word_count']}")
+                                            st.write(f"**Average confidence:** {ocr_result['average_confidence']:.1f}%")
+                                            
+                                            if ocr_result['raw_text']:
+                                                st.text_area("Raw OCR Text:", ocr_result['raw_text'][:1000], height=150)
+                                                
+                                                # Analyze text for steganographic patterns
+                                                text_analysis = analyze_text_for_steganography(ocr_result['raw_text'])
+                                                
+                                                if text_analysis['likelihood'] > 0.3:
+                                                    st.warning(f"🔍 **Steganographic patterns detected!** (Likelihood: {text_analysis['likelihood']:.2f})")
+                                                    st.write("**Indicators found:**")
+                                                    for indicator in text_analysis['indicators']:
+                                                        st.write(f"• {indicator}")
+                                                
+                                                # Save text as binary for external analysis
+                                                saved_file = save_extracted_binary(ocr_result['raw_text'].encode('utf-8'), "ocr_text", 10)
+                                                if saved_file:
+                                                    st.info(f"💾 OCR text saved as: `{saved_file}`")
+                                            else:
+                                                st.info("No text detected in the image")
+                                        else:
+                                            st.error(f"OCR failed: {ocr_result['error']}")
+                                            
+                                    except Exception as e:
+                                        st.error(f"OCR extraction failed: {str(e)}")
+                        
+                        with col5:
+                            if st.button("⚡ XOR Analysis", help="Try XOR decoding on extracted data"):
+                                with st.spinner("Running XOR analysis..."):
+                                    try:
+                                        xor_results = extract_with_xor_analysis(temp_path)
+                                        
+                                        if xor_results:
+                                            successful_results = [r for r in xor_results if r.success]
+                                            
+                                            if successful_results:
+                                                st.success(f"✅ **XOR analysis found {len(successful_results)} potential results!**")
+                                                
+                                                # Show top 3 results
+                                                for i, result in enumerate(successful_results[:3]):
+                                                    st.write(f"**Result #{i+1}: {result.method}**")
+                                                    st.write(f"Confidence: {result.confidence:.2f}")
+                                                    
+                                                    if result.data:
+                                                        # Save binary data
+                                                        saved_file = save_extracted_binary(result.data, f"xor_result_{i+1}", 20+i)
+                                                        if saved_file:
+                                                            st.info(f"💾 XOR result saved as: `{saved_file}`")
+                                                        
+                                                        try:
+                                                            # Try to display as text
+                                                            text_data = result.data.decode('utf-8', errors='ignore')
+                                                            if text_data.strip() and len(text_data) < 500:
+                                                                st.text_area(f"Decoded Text #{i+1}:", text_data, height=80, key=f"xor_text_{i}")
+                                                            else:
+                                                                st.write(f"Binary data ({len(result.data)} bytes) - Hex: {result.data[:20].hex()}...")
+                                                        except:
+                                                            st.write(f"Binary data ({len(result.data)} bytes) - Hex: {result.data[:20].hex()}...")
+                                                    
+                                                    if i < 2:  # Don't add separator after last item
+                                                        st.markdown("---")
+                                            else:
+                                                st.info("No meaningful XOR decoding results found")
+                                        else:
+                                            st.warning("XOR analysis completed but no results found")
+                                            
+                                    except Exception as e:
+                                        st.error(f"XOR analysis failed: {str(e)}")
                         
                         # Additional extraction methods
                         if st.expander("🔬 Advanced Extraction Methods"):
