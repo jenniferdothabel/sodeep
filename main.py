@@ -6,7 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from utils.file_analysis import (
     get_file_metadata, extract_strings, analyze_file_structure,
-    calculate_entropy, get_byte_frequency, get_hex_dump, run_zsteg
+    calculate_entropy, get_byte_frequency, get_hex_dump, run_zsteg,
+    is_video_file, extract_video_frames, analyze_video_metadata, save_video_frame_for_analysis
 )
 from utils.visualizations import (
     create_entropy_plot, create_byte_frequency_plot, format_hex_dump,
@@ -216,24 +217,24 @@ if upload_mode == "🔍 Single File Analysis":
     # Single file upload
     uploaded_file = st.file_uploader(
         "Drop your file here",
-        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif'],
-        help="Supported formats: PNG, JPEG, TIFF, BMP, WEBP, HEIC, GIF"
+        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
+        help="Supported formats: PNG, JPEG, TIFF, BMP, WEBP, HEIC, GIF, MP4, AVI, MOV, WMV, FLV, MKV, WEBM"
     )
 else:
     # Multi-file upload for batch processing
     st.write("**Option 1: Upload Multiple Images**")
     uploaded_files = st.file_uploader(
-        "Drop multiple image files here",
-        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif'],
+        "Drop multiple image/video files here",
+        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
         accept_multiple_files=True,
-        help="Upload multiple images to quickly scan for steganography likelihood"
+        help="Upload multiple images and videos to quickly scan for steganography likelihood"
     )
     
     st.write("**Option 2: Upload ZIP Archive**")
     uploaded_zip = st.file_uploader(
         "Drop a ZIP file containing images",
         type=['zip'],
-        help="Upload a ZIP archive containing images (PNG, JPEG, TIFF, BMP, WEBP, HEIC, GIF) for batch processing"
+        help="Upload a ZIP archive containing images and videos for batch processing"
     )
     
     # Process ZIP file if uploaded
@@ -246,7 +247,9 @@ else:
                 # Extract image files from ZIP
                 image_files = []
                 supported_extensions = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp', '.heic', '.heif', '.gif',
-                                       '.PNG', '.JPG', '.JPEG', '.TIFF', '.TIF', '.BMP', '.WEBP', '.HEIC', '.HEIF', '.GIF')
+                                       '.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.webm',
+                                       '.PNG', '.JPG', '.JPEG', '.TIFF', '.TIF', '.BMP', '.WEBP', '.HEIC', '.HEIF', '.GIF',
+                                       '.MP4', '.AVI', '.MOV', '.WMV', '.FLV', '.MKV', '.WEBM')
                 
                 for file_info in zip_ref.filelist:
                     if file_info.filename.endswith(supported_extensions) and not file_info.is_dir():
@@ -300,9 +303,27 @@ else:
                         tmp_file.write(uploaded_file.read())
                         temp_path = tmp_file.name
                     
-                    # Quick detection analysis
-                    detection_result = analyze_image_for_steganography(temp_path)
-                    metadata = get_file_metadata(temp_path)
+                    # Check if it's a video file and process accordingly
+                    if is_video_file(temp_path):
+                        # For videos, extract frames and analyze the first few
+                        frames, frame_msg = extract_video_frames(temp_path, max_frames=3)
+                        if frames:
+                            # Analyze the first frame
+                            frame_path = save_video_frame_for_analysis(frames[0])
+                            if frame_path:
+                                detection_result = analyze_image_for_steganography(frame_path)
+                                metadata = analyze_video_metadata(temp_path)
+                                os.unlink(frame_path)  # Cleanup frame
+                            else:
+                                detection_result = None
+                                metadata = analyze_video_metadata(temp_path)
+                        else:
+                            detection_result = None
+                            metadata = analyze_video_metadata(temp_path)
+                    else:
+                        # Regular image analysis
+                        detection_result = analyze_image_for_steganography(temp_path)
+                        metadata = get_file_metadata(temp_path)
                     
                     if detection_result and hasattr(detection_result, 'likelihood'):
                         likelihood = detection_result.likelihood
@@ -438,6 +459,21 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
     with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_file.name).suffix) as tmp_file:
         tmp_file.write(uploaded_file.getvalue())
         temp_path = tmp_file.name
+    
+    # Check if it's a video file
+    is_video = is_video_file(temp_path)
+    
+    if is_video:
+        st.info("🎬 Video file detected. Extracting frames for steganography analysis...")
+        frames, frame_msg = extract_video_frames(temp_path, max_frames=5)
+        st.write(f"📱 {frame_msg}")
+        
+        if frames:
+            st.success(f"✅ Successfully extracted {len(frames)} frames for analysis")
+        else:
+            st.error("❌ Could not extract frames from video")
+    else:
+        frames = None
 
     try:
         # Run analysis

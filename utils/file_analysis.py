@@ -4,6 +4,12 @@ import tempfile
 from pathlib import Path
 import numpy as np
 import pandas as pd
+try:
+    import cv2
+    import moviepy.editor as mp
+    HAS_VIDEO_SUPPORT = True
+except ImportError:
+    HAS_VIDEO_SUPPORT = False
 
 def run_command(cmd, input_file):
     """Run a command and return its output."""
@@ -152,3 +158,100 @@ def run_zsteg(file_path):
         return "ZSTEG analysis timed out after 30 seconds"
     except Exception as e:
         return f"ZSTEG analysis error: {str(e)}"
+
+def is_video_file(file_path):
+    """Check if file is a video format."""
+    video_extensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.webm']
+    return Path(file_path).suffix.lower() in video_extensions
+
+def extract_video_frames(file_path, max_frames=10):
+    """Extract frames from video for steganography analysis."""
+    if not HAS_VIDEO_SUPPORT:
+        return None, "Video analysis requires opencv-python and moviepy libraries"
+    
+    if not is_video_file(file_path):
+        return None, "File is not a video format"
+    
+    try:
+        # Use OpenCV to extract frames
+        if not HAS_VIDEO_SUPPORT:
+            return None, "Video support not available"
+        cap = cv2.VideoCapture(str(file_path))
+        frames = []
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        if frame_count == 0:
+            cap.release()
+            return None, "Unable to read video frames"
+        
+        # Extract frames evenly distributed throughout the video
+        step = max(1, frame_count // max_frames)
+        
+        for i in range(0, min(frame_count, max_frames * step), step):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, i)
+            ret, frame = cap.read()
+            if ret:
+                frames.append(frame)
+            if len(frames) >= max_frames:
+                break
+        
+        cap.release()
+        
+        if not frames:
+            return None, "No frames could be extracted from video"
+        
+        return frames, f"Extracted {len(frames)} frames for analysis"
+        
+    except Exception as e:
+        return None, f"Error extracting video frames: {str(e)}"
+
+def analyze_video_metadata(file_path):
+    """Analyze video metadata for steganography indicators."""
+    if not HAS_VIDEO_SUPPORT:
+        return {"error": "Video analysis requires moviepy library"}
+    
+    try:
+        # Get basic metadata using exiftool first
+        metadata = get_file_metadata(file_path)
+        
+        # Add video-specific analysis
+        try:
+            clip = mp.VideoFileClip(str(file_path))
+            video_metadata = {
+                "duration": clip.duration,
+                "fps": clip.fps,
+                "size": clip.size,
+                "audio_present": clip.audio is not None
+            }
+            metadata.update(video_metadata)
+            clip.close()
+        except Exception as e:
+            metadata["video_analysis_error"] = str(e)
+        
+        return metadata
+        
+    except Exception as e:
+        return {"error": f"Error analyzing video metadata: {str(e)}"}
+
+def save_video_frame_for_analysis(frame, temp_dir="/tmp"):
+    """Save a video frame as temporary image for steganography analysis."""
+    try:
+        import tempfile
+        from PIL import Image
+        
+        # Create temporary file
+        temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False, dir=temp_dir)
+        temp_path = temp_file.name
+        temp_file.close()
+        
+        # Convert BGR to RGB (OpenCV uses BGR)
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Convert to PIL Image and save
+        pil_image = Image.fromarray(rgb_frame)
+        pil_image.save(temp_path)
+        
+        return temp_path
+        
+    except Exception as e:
+        return None
