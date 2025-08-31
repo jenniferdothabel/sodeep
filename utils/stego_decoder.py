@@ -511,13 +511,13 @@ def brute_force_decode(image_path, password_list=None):
     if not password_list:
         password_list = ["", "password", "123456", "admin", "stego", "secret", "hidden"]
     
-    # Try LSB decoding with different parameters
-    for channel in range(3):  # R, G, B channels
-        for bit_plane in [0, 1]:  # Focus on lower bit planes
+    # Try LSB decoding with reduced parameters for faster processing
+    for channel in range(2):  # Just R, G channels 
+        for bit_plane in [0]:  # Only LSB for speed
             results.append(decode_lsb(image_path, bit_plane, channel))
     
-    # Try multi-bit LSB
-    for channel in range(3):
+    # Try multi-bit LSB (reduced)
+    for channel in range(2):  # Just R, G channels
         results.append(decode_multi_bit_lsb(image_path, bits=2, channel=channel))
     
     # Try metadata extraction
@@ -588,8 +588,8 @@ def try_xor_decoding(data, max_key_length=16):
         except:
             return results
     
-    # Try single-byte XOR keys (0-255)
-    for key_byte in range(1, 256):  # Skip 0 as it would return original data
+    # Try single-byte XOR keys (reduced range for speed)
+    for key_byte in range(1, 128):  # Reduced range to speed up analysis
         try:
             decoded = xor_decode_data(data, bytes([key_byte]))
             
@@ -631,10 +631,10 @@ def try_xor_decoding(data, max_key_length=16):
         except:
             continue
     
-    # Try repeating pattern keys (AA, ABAB, ABCABC, etc.)
-    for pattern_len in range(2, min(max_key_length + 1, 5)):
-        for pattern in itertools.product(range(1, 256), repeat=pattern_len):
-            if len(results) > 50:  # Limit results to avoid overwhelming
+    # Try repeating pattern keys (limited for speed)
+    for pattern_len in range(2, min(max_key_length + 1, 3)):  # Reduced range
+        for pattern in itertools.product(range(1, 128), repeat=pattern_len):  # Reduced key space
+            if len(results) > 25:  # Earlier limit to prevent timeouts
                 break
             
             key = bytes(pattern)
