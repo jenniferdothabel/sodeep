@@ -615,8 +615,9 @@ def ai_plugin_manifest():
         "legal_info_url": f"{request.host_url}legal"
     })
 
+@app.route('/openapi-spec.json', methods=['GET']) 
 @app.route('/openapi.json', methods=['GET'])
-def openapi_spec():
+def openapi_specification():
     """OpenAPI specification for ChatGPT action."""
     return jsonify({
         "openapi": "3.0.0",
