@@ -31,7 +31,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Image file to analyze (PNG or JPEG format, max 16MB)"
+                    "description": "Image file to analyze (PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP format, max 16MB)"
                   }
                 },
                 "required": ["file"]
@@ -246,7 +246,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Image file to scan (PNG or JPEG)"
+                    "description": "Image file to scan (PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP)"
                   }
                 },
                 "required": ["file"]
@@ -351,7 +351,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Image file for OCR processing (PNG or JPEG)"
+                    "description": "Image file for OCR processing (PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP)"
                   }
                 },
                 "required": ["file"]
@@ -462,7 +462,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Image file for XOR analysis (PNG or JPEG)"
+                    "description": "Image file for XOR analysis (PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP)"
                   }
                 },
                 "required": ["file"]
@@ -572,6 +572,73 @@
           },
           "500": {
             "description": "Server error during XOR analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Analysis"]
+      }
+    },
+    "/api/generate-report": {
+      "post": {
+        "summary": "Generate Comprehensive Analysis Report",
+        "description": "Generate a detailed text report containing all analysis results for download as a text file",
+        "operationId": "generateAnalysisReport",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file for comprehensive report generation (PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP)"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis report generated successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "description": "Comprehensive analysis report in text format"
+                }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "description": "Attachment header for file download",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request for report generation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during report generation",
             "content": {
               "application/json": {
                 "schema": {

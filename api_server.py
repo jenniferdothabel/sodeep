@@ -43,8 +43,8 @@ def analyze_image():
                 return jsonify({"error": "No file provided"}), 400
             
             filename = secure_filename(file.filename)
-            if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                return jsonify({"error": "Only PNG and JPEG files are supported"}), 400
+            if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.tiff', '.tif', '.heic', '.bmp', '.webp')):
+                return jsonify({"error": "Supported formats: PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP"}), 400
             
             # Save to temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as tmp_file:
@@ -374,6 +374,216 @@ def xor_decode():
             os.unlink(temp_path)
         return jsonify({"error": f"XOR analysis failed: {str(e)}"}), 500
 
+@app.route('/api/generate-report', methods=['POST'])
+def generate_report():
+    """Generate a comprehensive text report for download."""
+    try:
+        temp_path = None
+        
+        # Handle file input
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({"error": "No file provided"}), 400
+                
+            filename = secure_filename(file.filename)
+            if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.tiff', '.tif', '.heic', '.bmp', '.webp')):
+                return jsonify({"error": "Supported formats: PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP"}), 400
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as tmp_file:
+                file.save(tmp_file.name)
+                temp_path = tmp_file.name
+        elif 'image_base64' in request.json:
+            image_data = base64.b64decode(request.json['image_base64'])
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
+                tmp_file.write(image_data)
+                temp_path = tmp_file.name
+            filename = request.json.get('filename', 'uploaded_image.png')
+        else:
+            return jsonify({"error": "No image data provided"}), 400
+        
+        try:
+            # Perform all analyses
+            file_size = os.path.getsize(temp_path)
+            entropy = calculate_entropy(temp_path)
+            metadata = get_file_metadata(temp_path)
+            detection_result = analyze_image_for_steganography(temp_path)
+            
+            # Generate comprehensive text report
+            report_lines = []
+            report_lines.append("=" * 80)
+            report_lines.append("DEEP ANAL - STEGANOGRAPHY ANALYSIS REPORT")
+            report_lines.append("=" * 80)
+            report_lines.append("")
+            
+            # File Information
+            report_lines.append("FILE INFORMATION:")
+            report_lines.append("-" * 40)
+            report_lines.append(f"Filename: {filename}")
+            report_lines.append(f"File Size: {file_size:,} bytes ({file_size/1024:.1f} KB)")
+            report_lines.append(f"Entropy: {entropy:.4f}")
+            report_lines.append("")
+            
+            # Steganography Analysis
+            report_lines.append("STEGANOGRAPHY ANALYSIS:")
+            report_lines.append("-" * 40)
+            report_lines.append(f"Overall Likelihood: {detection_result.likelihood:.1%}")
+            risk_level = "HIGH" if detection_result.likelihood >= 0.7 else "MEDIUM" if detection_result.likelihood >= 0.4 else "LOW"
+            report_lines.append(f"Risk Level: {risk_level}")
+            
+            if hasattr(detection_result, 'indicators') and detection_result.indicators:
+                report_lines.append("")
+                report_lines.append("Detection Indicators:")
+                for name, details in detection_result.indicators.items():
+                    report_lines.append(f"  • {name.replace('_', ' ').title()}: {details['value']:.3f} (weight: {details['weight']:.1f})")
+            
+            if hasattr(detection_result, 'explanation'):
+                report_lines.append("")
+                report_lines.append(f"Analysis: {detection_result.explanation}")
+            
+            # Try extractions if likelihood is sufficient
+            if detection_result.likelihood >= 0.3:
+                report_lines.append("")
+                report_lines.append("EXTRACTION ATTEMPTS:")
+                report_lines.append("-" * 40)
+                
+                try:
+                    # Brute force extraction
+                    results = brute_force_decode(temp_path)
+                    successful_results = [r for r in results if r.success and r.confidence > 0.2]
+                    
+                    if successful_results:
+                        report_lines.append("Successful Extractions:")
+                        for i, result in enumerate(successful_results[:3]):
+                            report_lines.append(f"  {i+1}. Method: {result.method}")
+                            report_lines.append(f"     Confidence: {result.confidence:.1%}")
+                            if result.data:
+                                try:
+                                    text_data = result.data.decode('utf-8', errors='ignore')[:200]
+                                    if text_data.strip():
+                                        report_lines.append(f"     Preview: {text_data}...")
+                                    else:
+                                        report_lines.append(f"     Binary data: {len(result.data)} bytes")
+                                except:
+                                    report_lines.append(f"     Binary data: {len(result.data)} bytes")
+                            report_lines.append("")
+                    else:
+                        report_lines.append("No successful extractions with standard methods.")
+                        
+                except Exception as e:
+                    report_lines.append(f"Extraction error: {str(e)}")
+                
+                # OCR Analysis
+                try:
+                    ocr_result = extract_text_with_ocr(temp_path)
+                    if "error" not in ocr_result and ocr_result['raw_text']:
+                        report_lines.append("")
+                        report_lines.append("OCR TEXT EXTRACTION:")
+                        report_lines.append("-" * 40)
+                        report_lines.append(f"Words Found: {ocr_result['word_count']}")
+                        report_lines.append(f"Average Confidence: {ocr_result['average_confidence']:.1f}%")
+                        report_lines.append("Extracted Text:")
+                        report_lines.append(ocr_result['raw_text'][:500] + ("..." if len(ocr_result['raw_text']) > 500 else ""))
+                        
+                        # Analyze for patterns
+                        text_analysis = analyze_text_for_steganography(ocr_result['raw_text'])
+                        if text_analysis['likelihood'] > 0.3:
+                            report_lines.append("")
+                            report_lines.append("⚠️  STEGANOGRAPHIC PATTERNS DETECTED IN TEXT:")
+                            for indicator in text_analysis['indicators']:
+                                report_lines.append(f"  • {indicator}")
+                except:
+                    pass
+                
+                # XOR Analysis
+                try:
+                    xor_results = extract_with_xor_analysis(temp_path)
+                    if xor_results:
+                        successful_xor = [r for r in xor_results if r.success and r.confidence > 0.4]
+                        if successful_xor:
+                            report_lines.append("")
+                            report_lines.append("XOR DECODING RESULTS:")
+                            report_lines.append("-" * 40)
+                            report_lines.append(f"Patterns Found: {len(successful_xor)}")
+                            
+                            for i, result in enumerate(successful_xor[:3]):
+                                report_lines.append(f"  {i+1}. {result.method}")
+                                report_lines.append(f"     Confidence: {result.confidence:.1%}")
+                                if result.data:
+                                    try:
+                                        text_data = result.data.decode('utf-8', errors='ignore')[:100]
+                                        if text_data.strip():
+                                            report_lines.append(f"     Decoded: {text_data}...")
+                                    except:
+                                        pass
+                                report_lines.append("")
+                except:
+                    pass
+            
+            # Metadata Analysis
+            if metadata:
+                report_lines.append("")
+                report_lines.append("METADATA ANALYSIS:")
+                report_lines.append("-" * 40)
+                report_lines.append(f"Total Fields: {len(metadata)}")
+                
+                suspicious_fields = [k for k in metadata.keys() if any(term in k.lower() for term in ['comment', 'description', 'author', 'copyright', 'software'])]
+                if suspicious_fields:
+                    report_lines.append("Potentially Interesting Fields:")
+                    for field in suspicious_fields[:5]:
+                        value = str(metadata[field])[:100]
+                        report_lines.append(f"  • {field}: {value}")
+            
+            # AI Analysis
+            try:
+                ai_analysis = ai_assistant.analyze_detection_results(
+                    detection_result, metadata, None
+                )
+                if ai_analysis:
+                    report_lines.append("")
+                    report_lines.append("AI ANALYSIS:")
+                    report_lines.append("-" * 40)
+                    
+                    if ai_analysis.get("summary"):
+                        report_lines.append("Summary:")
+                        report_lines.append(ai_analysis["summary"])
+                        report_lines.append("")
+                    
+                    if ai_analysis.get("investigation_recommendations"):
+                        report_lines.append("Recommendations:")
+                        for rec in ai_analysis["investigation_recommendations"]:
+                            report_lines.append(f"  • {rec}")
+            except:
+                pass
+            
+            # Footer
+            report_lines.append("")
+            report_lines.append("=" * 80)
+            report_lines.append("Report generated by DEEP ANAL Steganography Analysis Platform")
+            from datetime import datetime
+            report_lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+            report_lines.append("=" * 80)
+            
+            # Create report content
+            report_content = "\n".join(report_lines)
+            
+            # Return as downloadable file
+            from flask import make_response
+            response = make_response(report_content)
+            response.headers['Content-Type'] = 'text/plain'
+            response.headers['Content-Disposition'] = f'attachment; filename="{Path(filename).stem}_analysis_report.txt"'
+            
+            return response
+            
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+    except Exception as e:
+        if 'temp_path' in locals() and temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
+        return jsonify({"error": f"Report generation failed: {str(e)}"}), 500
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint for monitoring."""
@@ -381,7 +591,7 @@ def health_check():
         "status": "healthy",
         "service": "DEEP ANAL Steganography API",
         "version": "1.0",
-        "capabilities": ["image_analysis", "steganography_detection", "content_extraction", "ai_analysis", "ocr_extraction", "xor_decoding"]
+        "capabilities": ["image_analysis", "steganography_detection", "content_extraction", "ai_analysis", "ocr_extraction", "xor_decoding", "report_generation"]
     })
 
 @app.route('/.well-known/ai-plugin.json', methods=['GET'])
@@ -391,7 +601,7 @@ def ai_plugin_manifest():
         "schema_version": "v1",
         "name_for_model": "steganography_analyzer",
         "name_for_human": "DEEP ANAL Steganography Analyzer",
-        "description_for_model": "Analyze images for hidden data using advanced steganography detection. Can detect LSB steganography, metadata hiding, extract hidden content, perform OCR text extraction with pattern analysis, and XOR decoding from PNG and JPEG images.",
+        "description_for_model": "Analyze images for hidden data using advanced steganography detection. Can detect LSB steganography, metadata hiding, extract hidden content, perform OCR text extraction with pattern analysis, and XOR decoding from PNG, JPEG, GIF, TIFF, HEIC, BMP, and WEBP images.",
         "description_for_human": "Advanced steganography analysis tool that can detect and extract hidden data from images.",
         "auth": {
             "type": "none"
@@ -437,7 +647,7 @@ def openapi_spec():
                                         "file": {
                                             "type": "string",
                                             "format": "binary",
-                                            "description": "Image file to analyze (PNG or JPEG)"
+                                            "description": "Image file to analyze (PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP)"
                                         }
                                     },
                                     "required": ["file"]
@@ -641,6 +851,44 @@ def openapi_spec():
                                             },
                                             "analysis_summary": {"type": "object"}
                                         }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/api/generate-report": {
+                "post": {
+                    "summary": "Generate comprehensive analysis report",
+                    "description": "Generate a detailed text report of all analysis results for download",
+                    "operationId": "generateAnalysisReport",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file": {
+                                            "type": "string",
+                                            "format": "binary",
+                                            "description": "Image file for comprehensive report generation"
+                                        }
+                                    },
+                                    "required": ["file"]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Analysis report generated successfully",
+                            "content": {
+                                "text/plain": {
+                                    "schema": {
+                                        "type": "string",
+                                        "description": "Comprehensive analysis report in text format"
                                     }
                                 }
                             }
