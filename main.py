@@ -12,7 +12,8 @@ from utils.file_analysis import (
 )
 from utils.visualizations import (
     create_entropy_plot, create_byte_frequency_plot, format_hex_dump,
-    create_detailed_view, create_strings_visualization
+    create_detailed_view, create_strings_visualization,
+    create_channel_analysis_visualization, create_channel_comparison_plot
 )
 from utils.database import (
     save_analysis, get_recent_analyses, get_analysis_by_id, DB_AVAILABLE
@@ -532,7 +533,7 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                 st.metric("Stego Detection", likelihood_percentage, delta=None)
             
             # Main analysis tabs
-            tab1, tab2, tab3, tab4 = st.tabs(["📊 Visualizations", "🔍 Detection Details", "📄 Metadata", "🔬 Advanced"])
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Visualizations", "🔍 Detection Details", "📄 Metadata", "🔬 Advanced", "🌈 Channel Analysis"])
             
             with tab1:
                 col1, col2 = st.columns(2)
@@ -1160,6 +1161,117 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                             st.write("No hex data available")
                     except Exception as e:
                         st.error(f"Hex analysis failed: {str(e)}")
+            
+            with tab5:
+                st.subheader("🌈 RGB Channel Analysis")
+                st.write("Analyzing individual color channels for hidden patterns and steganographic indicators...")
+                
+                try:
+                    # Create channel analysis for each RGB channel
+                    red_analysis = create_channel_analysis_visualization(temp_path, 'red')
+                    green_analysis = create_channel_analysis_visualization(temp_path, 'green')
+                    blue_analysis = create_channel_analysis_visualization(temp_path, 'blue')
+                    
+                    if red_analysis and green_analysis and blue_analysis:
+                        # Channel comparison chart
+                        comparison_plot = create_channel_comparison_plot(
+                            red_analysis['stats'], 
+                            green_analysis['stats'], 
+                            blue_analysis['stats']
+                        )
+                        st.plotly_chart(comparison_plot, use_container_width=True)
+                        
+                        st.markdown("---")
+                        
+                        # Display individual channel analysis
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.subheader("🔴 Red Channel")
+                            
+                            # Display original channel data
+                            st.write("**Original Channel:**")
+                            st.image(red_analysis['original'], caption="Red Channel Data", use_column_width=True)
+                            
+                            # Display noise pattern
+                            st.write("**Noise Pattern Analysis:**")
+                            st.image(red_analysis['noise'], caption="Red Channel Noise", use_column_width=True)
+                            
+                            # Channel statistics
+                            st.write("**Channel Statistics:**")
+                            stats = red_analysis['stats']
+                            st.write(f"- Mean: {stats['mean']:.2f}")
+                            st.write(f"- Std Dev: {stats['std']:.2f}")
+                            st.write(f"- Entropy: {stats['entropy']:.4f}")
+                            st.write(f"- Histogram Peaks: {stats['histogram_peaks']}")
+                        
+                        with col2:
+                            st.subheader("🟢 Green Channel")
+                            
+                            # Display original channel data
+                            st.write("**Original Channel:**")
+                            st.image(green_analysis['original'], caption="Green Channel Data", use_column_width=True)
+                            
+                            # Display noise pattern
+                            st.write("**Noise Pattern Analysis:**")
+                            st.image(green_analysis['noise'], caption="Green Channel Noise", use_column_width=True)
+                            
+                            # Channel statistics
+                            st.write("**Channel Statistics:**")
+                            stats = green_analysis['stats']
+                            st.write(f"- Mean: {stats['mean']:.2f}")
+                            st.write(f"- Std Dev: {stats['std']:.2f}")
+                            st.write(f"- Entropy: {stats['entropy']:.4f}")
+                            st.write(f"- Histogram Peaks: {stats['histogram_peaks']}")
+                        
+                        with col3:
+                            st.subheader("🔵 Blue Channel")
+                            
+                            # Display original channel data
+                            st.write("**Original Channel:**")
+                            st.image(blue_analysis['original'], caption="Blue Channel Data", use_column_width=True)
+                            
+                            # Display noise pattern
+                            st.write("**Noise Pattern Analysis:**")
+                            st.image(blue_analysis['noise'], caption="Blue Channel Noise", use_column_width=True)
+                            
+                            # Channel statistics
+                            st.write("**Channel Statistics:**")
+                            stats = blue_analysis['stats']
+                            st.write(f"- Mean: {stats['mean']:.2f}")
+                            st.write(f"- Std Dev: {stats['std']:.2f}")
+                            st.write(f"- Entropy: {stats['entropy']:.4f}")
+                            st.write(f"- Histogram Peaks: {stats['histogram_peaks']}")
+                        
+                        st.markdown("---")
+                        
+                        # Analysis interpretation
+                        st.subheader("📋 Channel Analysis Interpretation")
+                        
+                        # Calculate channel anomalies
+                        entropies = [red_analysis['stats']['entropy'], green_analysis['stats']['entropy'], blue_analysis['stats']['entropy']]
+                        entropy_variance = max(entropies) - min(entropies)
+                        
+                        if entropy_variance > 0.5:
+                            st.warning(f"⚠️ **High entropy variance detected ({entropy_variance:.3f})**")
+                            st.write("• Significant differences between channel entropies may indicate steganographic manipulation")
+                            st.write("• Hidden data often affects specific color channels more than others")
+                        else:
+                            st.success(f"✅ **Normal entropy variance ({entropy_variance:.3f})**")
+                            st.write("• Channel entropies are relatively uniform")
+                            st.write("• No obvious signs of channel-specific manipulation")
+                        
+                        # Noise pattern analysis
+                        st.write("**Noise Pattern Analysis:**")
+                        st.write("• High-contrast noise patterns may indicate embedded data")
+                        st.write("• Compare noise patterns between channels for anomalies")
+                        st.write("• Regular patterns in noise suggest algorithmic data hiding")
+                        
+                    else:
+                        st.error("Failed to analyze RGB channels - please try with a different image")
+                
+                except Exception as e:
+                    st.error(f"Channel analysis failed: {str(e)}")
         else:
             st.error("Only PNG and JPEG images are supported for steganography analysis")
     

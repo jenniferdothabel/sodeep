@@ -5,6 +5,8 @@ import pandas as pd
 import json
 import datetime
 from plotly.subplots import make_subplots
+from PIL import Image
+import streamlit as st
 
 def create_cyberpunk_theme():
     """Create a cyberpunk-themed template for plots."""
@@ -1138,3 +1140,144 @@ def create_detailed_view(plot_figure, title):
     )
     
     return plot_figure
+
+def create_channel_analysis_visualization(image_path, channel='red'):
+    """Create RGB channel analysis visualization showing noise patterns and channel data."""
+    try:
+        # Open and process image
+        img = Image.open(image_path)
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Convert to numpy array
+        pixels = np.array(img)
+        
+        # Resize if too large for performance
+        if pixels.shape[0] > 500 or pixels.shape[1] > 500:
+            max_dim = max(pixels.shape[0], pixels.shape[1])
+            scale = 500 / max_dim
+            new_height = int(pixels.shape[0] * scale)
+            new_width = int(pixels.shape[1] * scale)
+            img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            pixels = np.array(img_resized)
+        
+        # Extract channel data
+        channel_map = {'red': 0, 'green': 1, 'blue': 2}
+        channel_idx = channel_map.get(channel.lower(), 0)
+        
+        # Get channel data
+        channel_data = pixels[:, :, channel_idx]
+        
+        # Create noise analysis
+        noise_pattern = analyze_channel_noise(channel_data)
+        
+        # Create visualization data for both original and noise patterns
+        return {
+            'original': channel_data,
+            'noise': noise_pattern,
+            'channel': channel,
+            'stats': calculate_channel_stats(channel_data)
+        }
+        
+    except Exception as e:
+        st.error(f"Error processing {channel} channel: {str(e)}")
+        return None
+
+def analyze_channel_noise(channel_data):
+    """Analyze noise patterns in a single channel."""
+    # Apply various noise detection techniques
+    height, width = channel_data.shape
+    
+    # 1. High-pass filter to detect edges and noise
+    kernel = np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]])
+    
+    # Apply convolution manually for edge detection
+    noise_pattern = np.zeros_like(channel_data, dtype=float)
+    
+    for i in range(1, height-1):
+        for j in range(1, width-1):
+            # Apply kernel to detect high-frequency patterns
+            region = channel_data[i-1:i+2, j-1:j+2]
+            noise_pattern[i, j] = np.sum(region * kernel)
+    
+    # Normalize and enhance contrast
+    noise_pattern = np.abs(noise_pattern)
+    if noise_pattern.max() > 0:
+        noise_pattern = noise_pattern / noise_pattern.max() * 255
+    
+    return noise_pattern.astype(np.uint8)
+
+def calculate_channel_stats(channel_data):
+    """Calculate statistics for a channel."""
+    return {
+        'mean': float(np.mean(channel_data)),
+        'std': float(np.std(channel_data)),
+        'entropy': calculate_channel_entropy(channel_data),
+        'histogram_peaks': count_histogram_peaks(channel_data)
+    }
+
+def calculate_channel_entropy(channel_data):
+    """Calculate entropy of channel data."""
+    hist, _ = np.histogram(channel_data.flatten(), bins=256, range=(0, 256))
+    hist = hist / np.sum(hist)  # Normalize
+    hist = hist[hist > 0]  # Remove zeros
+    entropy = -np.sum(hist * np.log2(hist))
+    return float(entropy)
+
+def count_histogram_peaks(channel_data):
+    """Count peaks in channel histogram."""
+    hist, _ = np.histogram(channel_data.flatten(), bins=256, range=(0, 256))
+    peaks = 0
+    for i in range(1, 255):
+        if hist[i] > hist[i-1] and hist[i] > hist[i+1]:
+            peaks += 1
+    return peaks
+
+def create_channel_comparison_plot(red_stats, green_stats, blue_stats):
+    """Create comparison plot of all three channels."""
+    channels = ['Red', 'Green', 'Blue']
+    entropies = [red_stats['entropy'], green_stats['entropy'], blue_stats['entropy']]
+    means = [red_stats['mean'], green_stats['mean'], blue_stats['mean']]
+    stds = [red_stats['std'], green_stats['std'], blue_stats['std']]
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=('Channel Entropy', 'Mean Values', 'Standard Deviation'),
+        specs=[[{'type': 'bar'}, {'type': 'bar'}, {'type': 'bar'}]]
+    )
+    
+    # Add entropy plot
+    fig.add_trace(go.Bar(
+        x=channels,
+        y=entropies,
+        marker_color=['#ff0000', '#00ff00', '#0000ff'],
+        name='Entropy'
+    ), row=1, col=1)
+    
+    # Add means plot
+    fig.add_trace(go.Bar(
+        x=channels,
+        y=means,
+        marker_color=['#ff0000', '#00ff00', '#0000ff'],
+        name='Mean'
+    ), row=1, col=2)
+    
+    # Add standard deviation plot
+    fig.add_trace(go.Bar(
+        x=channels,
+        y=stds,
+        marker_color=['#ff0000', '#00ff00', '#0000ff'],
+        name='Std Dev'
+    ), row=1, col=3)
+    
+    fig.update_layout(
+        title={
+            'text': 'RGB CHANNEL ANALYSIS COMPARISON',
+            'font': {'color': '#00ffff', 'size': 20}
+        },
+        showlegend=False,
+        **create_cyberpunk_theme()
+    )
+    
+    return fig
