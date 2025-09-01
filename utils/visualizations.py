@@ -7,6 +7,9 @@ import datetime
 from plotly.subplots import make_subplots
 from PIL import Image
 import streamlit as st
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from io import BytesIO
 
 def create_cyberpunk_theme():
     """Create a cyberpunk-themed template for plots."""
@@ -1171,10 +1174,21 @@ def create_channel_analysis_visualization(image_path, channel='red'):
         # Create noise analysis
         noise_pattern = analyze_channel_noise(channel_data)
         
+        # Detect anomalies
+        anomalies = detect_channel_anomalies(channel_data, noise_pattern)
+        
+        # Create annotated visualization
+        annotated_image, annotations = create_annotated_channel_image(
+            channel_data, anomalies, channel.capitalize()
+        )
+        
         # Create visualization data for both original and noise patterns
         return {
             'original': channel_data,
             'noise': noise_pattern,
+            'annotated_image': annotated_image,
+            'annotations': annotations,
+            'anomalies': anomalies,
             'channel': channel,
             'stats': calculate_channel_stats(channel_data)
         }
@@ -1184,7 +1198,7 @@ def create_channel_analysis_visualization(image_path, channel='red'):
         return None
 
 def analyze_channel_noise(channel_data):
-    """Analyze noise patterns in a single channel."""
+    """Analyze noise patterns in a single channel and detect anomalies."""
     # Apply various noise detection techniques
     height, width = channel_data.shape
     
@@ -1206,6 +1220,190 @@ def analyze_channel_noise(channel_data):
         noise_pattern = noise_pattern / noise_pattern.max() * 255
     
     return noise_pattern.astype(np.uint8)
+
+def detect_channel_anomalies(channel_data, noise_pattern):
+    """Detect specific anomalies in channel data and return their locations and types."""
+    height, width = channel_data.shape
+    anomalies = []
+    
+    # 1. Detect high-contrast regions (potential LSB manipulation)
+    high_contrast_threshold = np.percentile(noise_pattern, 95)
+    high_contrast_mask = noise_pattern > high_contrast_threshold
+    
+    # Find connected components of high contrast
+    from scipy.ndimage import label
+    try:
+        labeled_array, num_features = label(high_contrast_mask)
+        
+        for i in range(1, num_features + 1):
+            coords = np.where(labeled_array == i)
+            if len(coords[0]) > 20:  # Only significant regions
+                center_y = int(np.mean(coords[0]))
+                center_x = int(np.mean(coords[1]))
+                size = len(coords[0])
+                
+                anomalies.append({
+                    'type': 'high_contrast',
+                    'center': (center_x, center_y),
+                    'size': size,
+                    'severity': min(size / 100, 1.0),
+                    'description': 'High-contrast region detected',
+                    'recommendations': [
+                        'Extract LSB data from this region',
+                        'Analyze bit patterns in surrounding pixels',
+                        'Check for hidden message boundaries'
+                    ]
+                })
+    except ImportError:
+        # Fallback without scipy
+        pass
+    
+    # 2. Detect regular patterns (potential algorithmic hiding)
+    # Look for repeating patterns in small windows
+    window_size = 8
+    pattern_threshold = 0.8
+    
+    for i in range(0, height - window_size, window_size // 2):
+        for j in range(0, width - window_size, window_size // 2):
+            window = channel_data[i:i+window_size, j:j+window_size]
+            
+            # Check for repetitive patterns
+            variance = np.var(window)
+            mean_val = np.mean(window)
+            
+            # Look for suspicious uniformity or regular patterns
+            if variance < 5 and mean_val > 50:  # Very uniform region
+                anomalies.append({
+                    'type': 'uniform_region',
+                    'center': (j + window_size//2, i + window_size//2),
+                    'size': window_size * window_size,
+                    'severity': 0.6,
+                    'description': 'Suspiciously uniform region',
+                    'recommendations': [
+                        'Check for steganographic algorithms',
+                        'Analyze adjacent regions for similar patterns',
+                        'Test with different extraction methods'
+                    ]
+                })
+    
+    # 3. Detect entropy hotspots
+    entropy_window = 16
+    for i in range(0, height - entropy_window, entropy_window // 2):
+        for j in range(0, width - entropy_window, entropy_window // 2):
+            window = channel_data[i:i+entropy_window, j:j+entropy_window]
+            local_entropy = calculate_local_entropy(window)
+            
+            if local_entropy > 7.5:  # High local entropy
+                anomalies.append({
+                    'type': 'entropy_hotspot',
+                    'center': (j + entropy_window//2, i + entropy_window//2),
+                    'size': entropy_window * entropy_window,
+                    'severity': min((local_entropy - 7.0) / 1.0, 1.0),
+                    'description': f'High entropy region ({local_entropy:.2f})',
+                    'recommendations': [
+                        'High entropy suggests encrypted or compressed data',
+                        'Try frequency analysis on this region',
+                        'Check for cryptographic signatures'
+                    ]
+                })
+    
+    # Sort by severity (most severe first)
+    anomalies.sort(key=lambda x: x['severity'], reverse=True)
+    
+    return anomalies[:10]  # Return top 10 anomalies
+
+def calculate_local_entropy(data):
+    """Calculate entropy for a small data window."""
+    hist, _ = np.histogram(data.flatten(), bins=256, range=(0, 256))
+    hist = hist / np.sum(hist)
+    hist = hist[hist > 0]
+    if len(hist) == 0:
+        return 0
+    return -np.sum(hist * np.log2(hist))
+
+def create_annotated_channel_image(channel_data, anomalies, channel_name):
+    """Create an annotated image showing detected anomalies with circles and recommendations."""
+    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    
+    # Display the channel data
+    ax.imshow(channel_data, cmap='gray', alpha=0.8)
+    
+    # Define colors for different anomaly types
+    colors = {
+        'high_contrast': 'red',
+        'uniform_region': 'yellow',
+        'entropy_hotspot': 'cyan'
+    }
+    
+    annotations = []
+    
+    # Add circles and annotations for each anomaly
+    for i, anomaly in enumerate(anomalies):
+        x, y = anomaly['center']
+        anomaly_type = anomaly['type']
+        severity = anomaly['severity']
+        
+        # Circle size based on severity and anomaly size
+        radius = max(15, min(50, np.sqrt(anomaly['size']) * severity * 2))
+        
+        # Draw circle around anomaly
+        circle = patches.Circle(
+            (x, y), radius, 
+            linewidth=3, 
+            edgecolor=colors.get(anomaly_type, 'white'),
+            facecolor='none',
+            alpha=0.8
+        )
+        ax.add_patch(circle)
+        
+        # Add numbered annotation
+        ax.annotate(
+            str(i + 1),
+            xy=(x, y),
+            xytext=(x + radius + 10, y - radius - 10),
+            fontsize=12,
+            fontweight='bold',
+            color=colors.get(anomaly_type, 'white'),
+            bbox=dict(
+                boxstyle='round,pad=0.3',
+                facecolor='black',
+                edgecolor=colors.get(anomaly_type, 'white'),
+                alpha=0.8
+            ),
+            arrowprops=dict(
+                arrowstyle='->',
+                connectionstyle='arc3,rad=0.2',
+                color=colors.get(anomaly_type, 'white'),
+                lw=2
+            )
+        )
+        
+        # Store annotation info for legend
+        annotations.append({
+            'number': i + 1,
+            'type': anomaly_type.replace('_', ' ').title(),
+            'severity': f"{severity:.1f}",
+            'description': anomaly['description'],
+            'recommendations': anomaly['recommendations']
+        })
+    
+    ax.set_title(f'{channel_name} Channel - Anomaly Detection', 
+                fontsize=16, fontweight='bold', color='white')
+    ax.set_facecolor('black')
+    ax.axis('off')
+    
+    # Set figure background
+    fig.patch.set_facecolor('black')
+    
+    # Save to BytesIO for Streamlit
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png', bbox_inches='tight', 
+                facecolor='black', edgecolor='none', dpi=150)
+    buffer.seek(0)
+    
+    plt.close(fig)
+    
+    return buffer, annotations
 
 def calculate_channel_stats(channel_data):
     """Calculate statistics for a channel."""
