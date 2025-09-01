@@ -22,7 +22,14 @@ from utils.stego_decoder import (
     brute_force_decode, decode_lsb, decode_multi_bit_lsb, 
     try_steghide_extract, extract_metadata_hidden_data, extract_with_xor_analysis
 )
-from utils.ai_assistant import SteganographyAssistant, get_investigation_suggestions
+try:
+    from utils.ai_assistant import SteganographyAssistant, get_investigation_suggestions
+    AI_AVAILABLE = True
+except ImportError as e:
+    AI_AVAILABLE = False
+    SteganographyAssistant = None
+    def get_investigation_suggestions(likelihood, indicators):
+        return ["AI Assistant not available - limited suggestions"]
 
 def save_extracted_binary(data, method_name, method_index=None):
     """Save extracted binary data to a file for external analysis"""
@@ -195,12 +202,16 @@ def generate_text_report(filename, detection_result, metadata, likelihood):
     return "\n".join(report_lines)
 
 # Configure Streamlit page
-st.set_page_config(
-    page_title="DEEP ANAL: Steganography Analysis",
-    page_icon="🔍",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+try:
+    st.set_page_config(
+        page_title="DEEP ANAL: Steganography Analysis",
+        page_icon="🔍",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
+except Exception as e:
+    st.error(f"Page configuration error: {e}")
+    st.stop()
 
 # Simple clean header without HTML
 st.title("🔍 DEEP ANAL")
@@ -862,7 +873,10 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                 
                 # Initialize AI assistant
                 try:
-                    ai_assistant = SteganographyAssistant()
+                    if AI_AVAILABLE and SteganographyAssistant is not None:
+                        ai_assistant = SteganographyAssistant()
+                    else:
+                        raise ImportError("AI Assistant not available")
                     
                     col1, col2 = st.columns([2, 1])
                     
@@ -931,14 +945,14 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                                 except Exception as e:
                                     st.error(f"AI analysis failed: {str(e)}")
                                     # Fallback to simple suggestions
-                                    suggestions = get_investigation_suggestions(likelihood, detection_result.indicators if hasattr(detection_result, 'indicators') else {})
+                                    suggestions = get_investigation_suggestions(likelihood, detection_result.indicators if detection_result and hasattr(detection_result, 'indicators') else {})
                                     st.write("**💡 Investigation Suggestions:**")
                                     for suggestion in suggestions:
                                         st.write(f"• {suggestion}")
                     
                     with col2:
                         st.write("**Quick Insights:**")
-                        suggestions = get_investigation_suggestions(likelihood, detection_result.indicators if hasattr(detection_result, 'indicators') else {})
+                        suggestions = get_investigation_suggestions(likelihood, detection_result.indicators if detection_result and hasattr(detection_result, 'indicators') else {})
                         for suggestion in suggestions[:4]:
                             st.write(f"• {suggestion}")
                         
