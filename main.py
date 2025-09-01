@@ -972,50 +972,55 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                 else:
                     st.write("No detailed detection data available")
                 
-                # Add download button for results
+                # Direct download buttons - no preview step
                 st.markdown("---")
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    if st.button("📥 Download Detection Report", help="Download comprehensive analysis results"):
-                        try:
-                            # Generate comprehensive report
-                            report_data = generate_detection_report(
-                                uploaded_file.name,
-                                detection_result,
-                                metadata,
-                                likelihood
-                            )
-                            
-                            # Convert to JSON
-                            report_json = json.dumps(report_data, indent=2, ensure_ascii=False)
-                            
-                            # Offer download
-                            st.download_button(
-                                label="📄 Download JSON Report",
-                                data=report_json,
-                                file_name=f"steganography_analysis_{uploaded_file.name.rsplit('.', 1)[0]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                                mime="application/json",
-                                help="Download detailed analysis results as JSON file"
-                            )
-                            
-                            # Also offer text format
-                            text_report = generate_text_report(
-                                uploaded_file.name,
-                                detection_result,
-                                metadata,
-                                likelihood
-                            )
-                            
-                            st.download_button(
-                                label="📝 Download Text Report",
-                                data=text_report,
-                                file_name=f"steganography_analysis_{uploaded_file.name.rsplit('.', 1)[0]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                                mime="text/plain",
-                                help="Download human-readable analysis report"
-                            )
-                            
-                        except Exception as e:
-                            st.error(f"Failed to generate report: {str(e)}")
+                st.subheader("📥 Download Analysis Reports")
+                
+                try:
+                    # Generate comprehensive report data once
+                    report_data = generate_detection_report(
+                        uploaded_file.name,
+                        detection_result,
+                        metadata,
+                        likelihood
+                    )
+                    
+                    # Generate JSON report
+                    report_json = json.dumps(report_data, indent=2, ensure_ascii=False)
+                    
+                    # Generate text report  
+                    text_report = generate_text_report(
+                        uploaded_file.name,
+                        detection_result,
+                        metadata,
+                        likelihood
+                    )
+                    
+                    # Show download buttons side by side
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.download_button(
+                            label="📄 Download JSON Report",
+                            data=report_json,
+                            file_name=f"steganography_analysis_{uploaded_file.name.rsplit('.', 1)[0]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                            mime="application/json",
+                            help="Download detailed analysis results as JSON file",
+                            use_container_width=True
+                        )
+                    
+                    with col2:
+                        st.download_button(
+                            label="📝 Download Text Report", 
+                            data=text_report,
+                            file_name=f"steganography_analysis_{uploaded_file.name.rsplit('.', 1)[0]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                            mime="text/plain",
+                            help="Download human-readable analysis report",
+                            use_container_width=True
+                        )
+                        
+                except Exception as e:
+                    st.error(f"Failed to generate report: {str(e)}")
             
             with tab3:
                 st.subheader("File Metadata")
