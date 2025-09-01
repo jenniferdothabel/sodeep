@@ -1173,6 +1173,51 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                     blue_analysis = create_channel_analysis_visualization(temp_path, 'blue')
                     
                     if red_analysis and green_analysis and blue_analysis:
+                        # Display annotated anomaly analysis first if there are any anomalies
+                        total_anomalies = len(red_analysis.get('anomalies', [])) + len(green_analysis.get('anomalies', [])) + len(blue_analysis.get('anomalies', []))
+                        
+                        if total_anomalies > 0:
+                            st.subheader("🎯 Anomaly Detection Results")
+                            st.write(f"Found **{total_anomalies}** potential steganographic anomalies across all channels.")
+                            
+                            # Display annotated plots for channels with anomalies
+                            channels_with_anomalies = []
+                            if len(red_analysis.get('anomalies', [])) > 0:
+                                channels_with_anomalies.append(('Red', red_analysis))
+                            if len(green_analysis.get('anomalies', [])) > 0:
+                                channels_with_anomalies.append(('Green', green_analysis))
+                            if len(blue_analysis.get('anomalies', [])) > 0:
+                                channels_with_anomalies.append(('Blue', blue_analysis))
+                            
+                            for channel_name, analysis in channels_with_anomalies:
+                                st.subheader(f"🔍 {channel_name} Channel Anomalies")
+                                
+                                # Display annotated plot
+                                if 'annotated_plot' in analysis:
+                                    st.plotly_chart(analysis['annotated_plot'], use_container_width=True)
+                                
+                                # Display anomaly details and recommendations
+                                if 'annotations' in analysis:
+                                    st.subheader(f"📋 {channel_name} Channel - Recommended Actions")
+                                    
+                                    for annotation in analysis['annotations']:
+                                        with st.expander(f"🔴 Anomaly #{annotation['number']}: {annotation['type']} (Severity: {annotation['severity']})"):
+                                            st.write(f"**Description:** {annotation['description']}")
+                                            st.write("**Recommended Next Steps:**")
+                                            for j, rec in enumerate(annotation['recommendations'], 1):
+                                                st.write(f"{j}. {rec}")
+                                            
+                                            # Add severity-based urgency indicators
+                                            severity_float = float(annotation['severity'])
+                                            if severity_float >= 0.8:
+                                                st.error("🚨 **HIGH PRIORITY** - Strong evidence of steganographic content")
+                                            elif severity_float >= 0.6:
+                                                st.warning("⚠️ **MEDIUM PRIORITY** - Suspicious patterns detected")
+                                            else:
+                                                st.info("ℹ️ **LOW PRIORITY** - Minor anomaly detected")
+                            
+                            st.markdown("---")
+                        
                         # Channel comparison chart
                         comparison_plot = create_channel_comparison_plot(
                             red_analysis['stats'], 
@@ -1191,11 +1236,11 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                             
                             # Display original channel data
                             st.write("**Original Channel:**")
-                            st.image(red_analysis['original'], caption="Red Channel Data", use_column_width=True)
+                            st.image(red_analysis['original'], caption="Red Channel Data", use_container_width=True)
                             
                             # Display noise pattern
                             st.write("**Noise Pattern Analysis:**")
-                            st.image(red_analysis['noise'], caption="Red Channel Noise", use_column_width=True)
+                            st.image(red_analysis['noise'], caption="Red Channel Noise", use_container_width=True)
                             
                             # Channel statistics
                             st.write("**Channel Statistics:**")
@@ -1210,11 +1255,11 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                             
                             # Display original channel data
                             st.write("**Original Channel:**")
-                            st.image(green_analysis['original'], caption="Green Channel Data", use_column_width=True)
+                            st.image(green_analysis['original'], caption="Green Channel Data", use_container_width=True)
                             
                             # Display noise pattern
                             st.write("**Noise Pattern Analysis:**")
-                            st.image(green_analysis['noise'], caption="Green Channel Noise", use_column_width=True)
+                            st.image(green_analysis['noise'], caption="Green Channel Noise", use_container_width=True)
                             
                             # Channel statistics
                             st.write("**Channel Statistics:**")
@@ -1229,11 +1274,11 @@ if upload_mode == "🔍 Single File Analysis" and uploaded_file:
                             
                             # Display original channel data
                             st.write("**Original Channel:**")
-                            st.image(blue_analysis['original'], caption="Blue Channel Data", use_column_width=True)
+                            st.image(blue_analysis['original'], caption="Blue Channel Data", use_container_width=True)
                             
                             # Display noise pattern
                             st.write("**Noise Pattern Analysis:**")
-                            st.image(blue_analysis['noise'], caption="Blue Channel Noise", use_column_width=True)
+                            st.image(blue_analysis['noise'], caption="Blue Channel Noise", use_container_width=True)
                             
                             # Channel statistics
                             st.write("**Channel Statistics:**")

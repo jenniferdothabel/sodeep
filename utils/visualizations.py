@@ -7,8 +7,6 @@ import datetime
 from plotly.subplots import make_subplots
 from PIL import Image
 import streamlit as st
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 from io import BytesIO
 
 def create_cyberpunk_theme():
@@ -1178,7 +1176,7 @@ def create_channel_analysis_visualization(image_path, channel='red'):
         anomalies = detect_channel_anomalies(channel_data, noise_pattern)
         
         # Create annotated visualization
-        annotated_image, annotations = create_annotated_channel_image(
+        annotated_plot, annotations = create_annotated_channel_plot(
             channel_data, anomalies, channel.capitalize()
         )
         
@@ -1186,7 +1184,7 @@ def create_channel_analysis_visualization(image_path, channel='red'):
         return {
             'original': channel_data,
             'noise': noise_pattern,
-            'annotated_image': annotated_image,
+            'annotated_plot': annotated_plot,
             'annotations': annotations,
             'anomalies': anomalies,
             'channel': channel,
@@ -1321,18 +1319,26 @@ def calculate_local_entropy(data):
         return 0
     return -np.sum(hist * np.log2(hist))
 
-def create_annotated_channel_image(channel_data, anomalies, channel_name):
-    """Create an annotated image showing detected anomalies with circles and recommendations."""
-    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+def create_annotated_channel_plot(channel_data, anomalies, channel_name):
+    """Create an annotated Plotly visualization showing detected anomalies with circles and recommendations."""
+    height, width = channel_data.shape
     
-    # Display the channel data
-    ax.imshow(channel_data, cmap='gray', alpha=0.8)
+    # Create the base heatmap
+    fig = go.Figure()
+    
+    # Add the channel data as a heatmap
+    fig.add_trace(go.Heatmap(
+        z=channel_data,
+        colorscale='gray',
+        showscale=False,
+        hoverinfo='none'
+    ))
     
     # Define colors for different anomaly types
     colors = {
-        'high_contrast': 'red',
-        'uniform_region': 'yellow',
-        'entropy_hotspot': 'cyan'
+        'high_contrast': '#ff0000',
+        'uniform_region': '#ffff00',
+        'entropy_hotspot': '#00ffff'
     }
     
     annotations = []
@@ -1344,38 +1350,60 @@ def create_annotated_channel_image(channel_data, anomalies, channel_name):
         severity = anomaly['severity']
         
         # Circle size based on severity and anomaly size
-        radius = max(15, min(50, np.sqrt(anomaly['size']) * severity * 2))
+        radius = max(10, min(40, np.sqrt(anomaly['size']) * severity * 1.5))
         
-        # Draw circle around anomaly
-        circle = patches.Circle(
-            (x, y), radius, 
-            linewidth=3, 
-            edgecolor=colors.get(anomaly_type, 'white'),
-            facecolor='none',
-            alpha=0.8
-        )
-        ax.add_patch(circle)
+        # Create circle points
+        theta = np.linspace(0, 2*np.pi, 50)
+        circle_x = x + radius * np.cos(theta)
+        circle_y = y + radius * np.sin(theta)
+        
+        # Add circle outline
+        fig.add_trace(go.Scatter(
+            x=circle_x,
+            y=circle_y,
+            mode='lines',
+            line=dict(
+                color=colors.get(anomaly_type, '#ffffff'),
+                width=3
+            ),
+            showlegend=False,
+            hoverinfo='none'
+        ))
         
         # Add numbered annotation
-        ax.annotate(
-            str(i + 1),
-            xy=(x, y),
-            xytext=(x + radius + 10, y - radius - 10),
-            fontsize=12,
-            fontweight='bold',
-            color=colors.get(anomaly_type, 'white'),
-            bbox=dict(
-                boxstyle='round,pad=0.3',
-                facecolor='black',
-                edgecolor=colors.get(anomaly_type, 'white'),
-                alpha=0.8
+        fig.add_trace(go.Scatter(
+            x=[x + radius + 15],
+            y=[y - radius - 15],
+            mode='markers+text',
+            marker=dict(
+                size=20,
+                color='black',
+                line=dict(
+                    color=colors.get(anomaly_type, '#ffffff'),
+                    width=2
+                )
             ),
-            arrowprops=dict(
-                arrowstyle='->',
-                connectionstyle='arc3,rad=0.2',
-                color=colors.get(anomaly_type, 'white'),
-                lw=2
-            )
+            text=[str(i + 1)],
+            textfont=dict(
+                color=colors.get(anomaly_type, '#ffffff'),
+                size=12
+            ),
+            showlegend=False,
+            hovertemplate=f'<b>Anomaly {i+1}</b><br>' +
+                         f'Type: {anomaly_type.replace("_", " ").title()}<br>' +
+                         f'Severity: {severity:.1f}<br>' +
+                         f'{anomaly["description"]}<extra></extra>'
+        ))
+        
+        # Add arrow from annotation to anomaly center
+        fig.add_annotation(
+            x=x, y=y,
+            ax=x + radius + 15, ay=y - radius - 15,
+            arrowhead=2,
+            arrowsize=1,
+            arrowwidth=2,
+            arrowcolor=colors.get(anomaly_type, '#ffffff'),
+            showarrow=True
         )
         
         # Store annotation info for legend
@@ -1387,23 +1415,35 @@ def create_annotated_channel_image(channel_data, anomalies, channel_name):
             'recommendations': anomaly['recommendations']
         })
     
-    ax.set_title(f'{channel_name} Channel - Anomaly Detection', 
-                fontsize=16, fontweight='bold', color='white')
-    ax.set_facecolor('black')
-    ax.axis('off')
+    # Update layout for cyberpunk style
+    fig.update_layout(
+        title={
+            'text': f'{channel_name} Channel - Anomaly Detection',
+            'font': {'color': '#00ffff', 'size': 18}
+        },
+        paper_bgcolor='black',
+        plot_bgcolor='black',
+        xaxis=dict(
+            showgrid=False,
+            showticklabels=False,
+            zeroline=False,
+            range=[-10, width + 10]
+        ),
+        yaxis=dict(
+            showgrid=False,
+            showticklabels=False,
+            zeroline=False,
+            scaleanchor='x',
+            scaleratio=1,
+            autorange='reversed',  # Flip Y axis to match image coordinates
+            range=[-10, height + 10]
+        ),
+        width=800,
+        height=600,
+        margin=dict(l=20, r=20, t=60, b=20)
+    )
     
-    # Set figure background
-    fig.patch.set_facecolor('black')
-    
-    # Save to BytesIO for Streamlit
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png', bbox_inches='tight', 
-                facecolor='black', edgecolor='none', dpi=150)
-    buffer.seek(0)
-    
-    plt.close(fig)
-    
-    return buffer, annotations
+    return fig, annotations
 
 def calculate_channel_stats(channel_data):
     """Calculate statistics for a channel."""
