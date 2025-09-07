@@ -546,7 +546,7 @@ else:
         st.stop()
 
 # Continue with single file analysis if a file was uploaded
-if upload_mode == "🔍 Single File Analysis" and uploaded_file:
+if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
     # Create temporary file
     with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_file.name).suffix) as tmp_file:
         tmp_file.write(uploaded_file.getvalue())
