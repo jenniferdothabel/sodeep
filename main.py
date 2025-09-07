@@ -4,6 +4,7 @@ import os
 import json
 from datetime import datetime
 from pathlib import Path
+import base64
 from utils.file_analysis import (
     get_file_metadata, extract_strings, analyze_file_structure,
     calculate_entropy, get_byte_frequency, get_hex_dump, run_zsteg,
@@ -31,6 +32,35 @@ except ImportError as e:
     SteganographyAssistant = None
     def get_investigation_suggestions(likelihood, indicators):
         return ["AI Assistant not available - limited suggestions"]
+        
+def load_css():
+    """Load cyberpunk CSS styling"""
+    with open('.streamlit/style.css') as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+        
+def create_terminal_panel(title, content, status="online"):
+    """Create a cyberpunk terminal-style panel"""
+    status_color = "#00ff00" if status == "online" else "#ff0040" if status == "error" else "#ff8c00"
+    status_icon = "●" if status == "online" else "⚠" if status == "warning" else "✕"
+    
+    st.markdown(f"""
+    <div class="terminal-window">
+        <div class="terminal-header">
+            <span style="color: {status_color}">{status_icon}</span> {title.upper()} - STATUS: {status.upper()}
+        </div>
+        <div class="terminal-body">
+            {content}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+def create_holo_panel(content):
+    """Create a holographic data visualization panel"""
+    st.markdown(f"""
+    <div class="holo-panel">
+        {content}
+    </div>
+    """, unsafe_allow_html=True)
 
 def save_extracted_binary(data, method_name, method_index=None):
     """Save extracted binary data to a file for external analysis"""
@@ -205,8 +235,8 @@ def generate_text_report(filename, detection_result, metadata, likelihood):
 # Configure Streamlit page
 try:
     st.set_page_config(
-        page_title="DEEP ANAL: Steganography Analysis",
-        page_icon="🔍",
+        page_title="DEEP ANAL: Hardcore Steganography Analysis",
+        page_icon="⚡",
         layout="wide",
         initial_sidebar_state="collapsed"
     )
@@ -214,16 +244,32 @@ except Exception as e:
     st.error(f"Page configuration error: {e}")
     st.stop()
 
-# Simple clean header without HTML
-st.title("🔍 DEEP ANAL")
-st.subheader("Steganography Analysis Platform")
+# Load cyberpunk CSS theme
+load_css()
 
-# Upload mode selection
+# Cyberpunk header
+st.markdown("""
+<div class="main-header">
+    <h1>⚡ DEEP ANAL ⚡</h1>
+    <p style="color: #ff00ff; font-family: 'Share Tech Mono', monospace; text-align: center; font-size: 1.2rem; margin-top: -1rem;">
+        HARDCORE STEGANOGRAPHY ANALYSIS SYSTEM
+    </p>
+    <p style="color: #00ffff; font-family: 'Share Tech Mono', monospace; text-align: center; font-size: 0.9rem;">
+        DETECTING HIDDEN DATA • EXTRACTING SECRETS • ANALYZING THREATS
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# Cyberpunk upload mode selection
+st.markdown("<div class='terminal-panel'>", unsafe_allow_html=True)
+st.markdown("**>>> SELECT OPERATION MODE:**")
 upload_mode = st.radio(
-    "Select Upload Mode:",
-    ["🔍 Single File Analysis", "📊 Batch Scan (Multiple Files)"],
-    horizontal=True
+    "Choose your mission:",
+    ["⚡ SINGLE TARGET ANALYSIS", "🔥 MASS SURVEILLANCE SCAN"],
+    horizontal=True,
+    label_visibility="collapsed"
 )
+st.markdown("</div>", unsafe_allow_html=True)
 
 uploaded_file = None
 if upload_mode == "🔍 Single File Analysis":
