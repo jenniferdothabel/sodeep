@@ -272,29 +272,62 @@ upload_mode = st.radio(
 st.markdown("</div>", unsafe_allow_html=True)
 
 uploaded_file = None
-if upload_mode == "🔍 Single File Analysis":
-    # Single file upload
-    uploaded_file = st.file_uploader(
-        "Drop your file here",
-        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
-        help="Supported formats: PNG, JPEG, TIFF, BMP, WEBP, HEIC, GIF, MP4, AVI, MOV, WMV, FLV, MKV, WEBM"
-    )
-else:
-    # Multi-file upload for batch processing
-    st.write("**Option 1: Upload Multiple Images**")
-    uploaded_files = st.file_uploader(
-        "Drop multiple image/video files here",
-        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
-        accept_multiple_files=True,
-        help="Upload multiple images and videos to quickly scan for steganography likelihood"
+if upload_mode == "⚡ SINGLE TARGET ANALYSIS":
+    # Cyberpunk single file upload interface
+    create_terminal_panel(
+        "FILE ACQUISITION MODULE",
+        """
+        <p style='color: #00ff00; font-family: "Share Tech Mono", monospace;'>
+        >>> INITIALIZING DEEP SCAN PROTOCOL...<br>
+        >>> SUPPORTED TARGET FORMATS: PNG | JPEG | TIFF | BMP | WEBP | HEIC | GIF<br>
+        >>> VIDEO FORMATS: MP4 | AVI | MOV | WMV | FLV | MKV | WEBM<br>
+        >>> DRAG TARGET FILE TO INITIATE ANALYSIS SEQUENCE
+        </p>
+        """,
+        "online"
     )
     
-    st.write("**Option 2: Upload ZIP Archive**")
-    uploaded_zip = st.file_uploader(
-        "Drop a ZIP file containing images",
-        type=['zip'],
-        help="Upload a ZIP archive containing images and videos for batch processing"
+    uploaded_file = st.file_uploader(
+        ">>> DEPLOY TARGET FILE FOR STEGANOGRAPHIC INTERROGATION",
+        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
+        help="CLASSIFIED ANALYSIS PROTOCOLS ACTIVE",
+        label_visibility="collapsed"
     )
+else:
+    # Cyberpunk batch processing interface
+    create_terminal_panel(
+        "MASS SURVEILLANCE PROTOCOL",
+        """
+        <p style='color: #ff00ff; font-family: "Share Tech Mono", monospace;'>
+        >>> INITIALIZING MASS DATA ACQUISITION...<br>
+        >>> BATCH PROCESSING MODE: ACTIVE<br>
+        >>> THREAT DETECTION ALGORITHMS: LOADED<br>
+        >>> READY FOR MULTI-TARGET ANALYSIS
+        </p>
+        """,
+        "online"
+    )
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**⚡ PROTOCOL ALPHA: MULTI-TARGET UPLOAD**")
+        uploaded_files = st.file_uploader(
+            ">>> DEPLOY MULTIPLE TARGETS FOR BATCH INTERROGATION",
+            type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
+            accept_multiple_files=True,
+            help="CLASSIFIED: MASS SURVEILLANCE ANALYSIS",
+            label_visibility="collapsed"
+        )
+    
+    with col2:
+        st.markdown("**🔥 PROTOCOL BETA: ARCHIVE DECOMPRESSION**")
+        uploaded_zip = st.file_uploader(
+            ">>> DEPLOY COMPRESSED ARCHIVE FOR EXTRACTION",
+            type=['zip'],
+            help="CLASSIFIED: COMPRESSED ASSET ANALYSIS",
+            label_visibility="collapsed"
+        )
     
     # Process ZIP file if uploaded
     if uploaded_zip:
