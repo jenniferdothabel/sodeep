@@ -320,7 +320,7 @@ def analyze_histogram(pixels):
         hist_sorted = np.sort(hist)
         cumulative = np.cumsum(hist_sorted)
         cumulative = cumulative / cumulative[-1]  # Normalize
-        gini = (np.trapz(np.linspace(0, 1, 256), cumulative) - 0.5) * 2
+        gini = (np.trapz(cumulative, np.linspace(0, 1, len(cumulative))) - 0.5) * 2
         
         # Combine metrics
         # Higher peaks, lower Gini (more even distribution) suggest steganography

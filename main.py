@@ -6,6 +6,14 @@ from datetime import datetime
 from pathlib import Path
 import base64
 import html
+from PIL import Image
+
+# Enable HEIF support
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
 from utils.file_analysis import (
     get_file_metadata, extract_strings, analyze_file_structure,
     calculate_entropy, get_byte_frequency, get_hex_dump, run_zsteg,
@@ -957,7 +965,7 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
         file_type = Path(uploaded_file.name).suffix.lower()[1:]
         entropy_value = calculate_entropy(temp_path)
         metadata = get_file_metadata(temp_path)
-        is_image = file_type in ['png', 'jpg', 'jpeg']
+        is_image = file_type in ['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif']
         
         if is_image:
             # Steganography detection
@@ -1871,7 +1879,8 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                 except Exception as e:
                     st.error(f"Channel analysis failed: {str(e)}")
         else:
-            st.error("Only PNG and JPEG images are supported for steganography analysis")
+            st.error("⚠️ Could not process this image format. Supported formats: PNG, JPEG, TIFF, BMP, WEBP, HEIC/HEIF, GIF")
+        st.info("💡 Some formats may require specific image processing libraries. Try converting to PNG or JPEG if analysis fails.")
     
     except Exception as e:
         st.error(f"Critical error: {str(e)}")
