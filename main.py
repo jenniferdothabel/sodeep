@@ -12,8 +12,9 @@ from PIL import Image
 try:
     from pillow_heif import register_heif_opener
     register_heif_opener()
+    HEIF_AVAILABLE = True
 except ImportError:
-    pass
+    HEIF_AVAILABLE = False
 from utils.file_analysis import (
     get_file_metadata, extract_strings, analyze_file_structure,
     calculate_entropy, get_byte_frequency, get_hex_dump, run_zsteg,
@@ -965,7 +966,11 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
         file_type = Path(uploaded_file.name).suffix.lower()[1:]
         entropy_value = calculate_entropy(temp_path)
         metadata = get_file_metadata(temp_path)
-        is_image = file_type in ['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif']
+        # Check if format is supported
+        base_formats = ['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'gif']
+        heif_formats = ['heic', 'heif'] if HEIF_AVAILABLE else []
+        supported_formats = base_formats + heif_formats
+        is_image = file_type in supported_formats
         
         if is_image:
             # Steganography detection
@@ -1879,8 +1884,14 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                 except Exception as e:
                     st.error(f"Channel analysis failed: {str(e)}")
         else:
-            st.error("⚠️ Could not process this image format. Supported formats: PNG, JPEG, TIFF, BMP, WEBP, HEIC/HEIF, GIF")
-        st.info("💡 Some formats may require specific image processing libraries. Try converting to PNG or JPEG if analysis fails.")
+            if file_type in ['heic', 'heif'] and not HEIF_AVAILABLE:
+            st.error("🖼️ HEIC/HEIF format not supported - pillow-heif library not available")
+            st.info("💡 Convert your HEIC file to PNG or JPEG format for analysis")
+        else:
+            base_list = "PNG, JPEG, TIFF, BMP, WEBP, GIF"
+            heif_list = ", HEIC/HEIF" if HEIF_AVAILABLE else ""
+            st.error(f"⚠️ Could not process this image format. Supported formats: {base_list}{heif_list}")
+            st.info("💡 Try converting to PNG or JPEG if analysis fails.")
     
     except Exception as e:
         st.error(f"Critical error: {str(e)}")

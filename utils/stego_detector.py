@@ -13,6 +13,14 @@ import struct
 from scipy import stats
 import random
 
+# Enable HEIF support if available
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+    HEIF_AVAILABLE = True
+except ImportError:
+    HEIF_AVAILABLE = False
+
 class DetectionResult:
     """Container for detection results."""
     def __init__(self):
@@ -315,12 +323,13 @@ def analyze_histogram(pixels):
         # Normalize peaks (typical images might have 5-20 peaks)
         normalized_peaks = min(peaks / 30, 1.0)
         
-        # Calculate "evenness" of histogram
-        # Use Gini coefficient as a measure of inequality
-        hist_sorted = np.sort(hist)
-        cumulative = np.cumsum(hist_sorted)
-        cumulative = cumulative / cumulative[-1]  # Normalize
-        gini = (np.trapz(cumulative, np.linspace(0, 1, len(cumulative))) - 0.5) * 2
+        # Calculate "evenness" of histogram using coefficient of variation
+        # Simpler and more reliable than Gini coefficient
+        if np.mean(hist) > 0:
+            gini = np.std(hist) / np.mean(hist)  # Coefficient of variation
+            gini = min(float(gini / 5.0), 1.0)  # Normalize to 0-1 range
+        else:
+            gini = 0.0
         
         # Combine metrics
         # Higher peaks, lower Gini (more even distribution) suggest steganography
