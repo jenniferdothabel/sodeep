@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 import base64
+import html
 from utils.file_analysis import (
     get_file_metadata, extract_strings, analyze_file_structure,
     calculate_entropy, get_byte_frequency, get_hex_dump, run_zsteg,
@@ -121,6 +122,389 @@ def generate_detection_report(filename, detection_result, metadata, likelihood):
         pass
     
     return report
+
+def generate_comprehensive_html_report(filename, detection_result, metadata, likelihood, extracted_data=None, channel_analysis=None, file_size=0, entropy=0):
+    """Generate comprehensive HTML report with all analysis data"""
+    
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    risk_level = 'HIGH' if likelihood >= 0.7 else 'MEDIUM' if likelihood >= 0.3 else 'LOW'
+    risk_color = '#ff0040' if likelihood >= 0.7 else '#ff8c00' if likelihood >= 0.3 else '#00ff00'
+    
+    html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DEEP ANAL - Analysis Report: {filename}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+        
+        body {{
+            font-family: 'Share Tech Mono', monospace;
+            background: #000;
+            color: #00ff00;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }}
+        
+        @media print {{
+            body {{
+                background: white;
+                color: black;
+            }}
+            .neon-border {{
+                border: 2px solid black !important;
+            }}
+            .header {{
+                background: linear-gradient(45deg, #333, #666) !important;
+                -webkit-background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+            }}
+        }}
+        
+        .header {{
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            text-align: center;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #9400d3);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px #00ffff;
+            margin-bottom: 30px;
+        }}
+        
+        .section {{
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            background: rgba(0, 255, 255, 0.05);
+        }}
+        
+        .neon-border {{
+            border: 2px solid #ff00ff;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            background: rgba(255, 0, 255, 0.05);
+        }}
+        
+        .risk-high {{ color: #ff0040; font-weight: bold; }}
+        .risk-medium {{ color: #ff8c00; font-weight: bold; }}
+        .risk-low {{ color: #00ff00; font-weight: bold; }}
+        
+        .metric {{
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+            padding: 10px;
+            border: 1px solid #9400d3;
+            border-radius: 5px;
+            background: rgba(148, 0, 211, 0.1);
+        }}
+        
+        .metric-label {{
+            color: #9400d3;
+            font-size: 0.9rem;
+        }}
+        
+        .metric-value {{
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }}
+        
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }}
+        
+        th, td {{
+            border: 1px solid #00ffff;
+            padding: 8px 12px;
+            text-align: left;
+        }}
+        
+        th {{
+            background: rgba(0, 255, 255, 0.2);
+            color: #00ffff;
+            font-weight: bold;
+        }}
+        
+        .extraction-result {{
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ff00ff;
+            border-radius: 5px;
+            background: rgba(255, 0, 255, 0.05);
+        }}
+        
+        .code-block {{
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Share Tech Mono', monospace;
+            color: #00ff00;
+            margin: 10px 0;
+            overflow-x: auto;
+        }}
+        
+        h1, h2, h3 {{
+            font-family: 'Orbitron', monospace;
+        }}
+        
+        h2 {{
+            color: #00ffff;
+            border-bottom: 2px solid #00ffff;
+            padding-bottom: 5px;
+        }}
+        
+        h3 {{
+            color: #ff00ff;
+        }}
+        
+        .footer {{
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            border-top: 2px solid #00ffff;
+            color: #888;
+        }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        ⚡ DEEP ANAL ⚡<br>
+        <div style="font-size: 1rem; margin-top: 10px; color: #ff00ff;">
+            COMPREHENSIVE STEGANOGRAPHY ANALYSIS REPORT
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>📋 ANALYSIS SUMMARY</h2>
+        <div class="metric">
+            <div class="metric-label">Analysis Date</div>
+            <div class="metric-value">{timestamp}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Target File</div>
+            <div class="metric-value">{filename}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">File Size</div>
+            <div class="metric-value">{file_size:,} bytes</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Entropy</div>
+            <div class="metric-value">{entropy:.4f}</div>
+        </div>
+        
+        <div class="neon-border">
+            <h3>🎯 DETECTION RESULTS</h3>
+            <div class="metric">
+                <div class="metric-label">Steganography Likelihood</div>
+                <div class="metric-value" style="color: {risk_color};">{likelihood * 100:.1f}%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Risk Assessment</div>
+                <div class="metric-value risk-{risk_level.lower()}">{risk_level} RISK</div>
+            </div>
+        </div>
+    </div>"""
+    
+    # Add interpretation section
+    html_content += f"""
+    <div class="section">
+        <h2>🔍 THREAT ASSESSMENT</h2>
+        <div class="neon-border">"""
+    
+    if likelihood >= 0.7:
+        html_content += """
+            <div class="risk-high">
+                ⚠️ HIGH PROBABILITY of steganographic content detected!<br>
+                This file very likely contains hidden data and requires immediate investigation.
+            </div>
+            <h3>📋 Recommended Actions:</h3>
+            <ul>
+                <li>Immediately extract hidden content using specialized tools</li>
+                <li>Analyze extracted data for sensitive information</li>
+                <li>Investigate source and distribution of this file</li>
+                <li>Consider security implications and containment measures</li>
+                <li>Document findings for incident response team</li>
+            </ul>"""
+    elif likelihood >= 0.3:
+        html_content += """
+            <div class="risk-medium">
+                ⚡ MODERATE PROBABILITY of steganographic content detected.<br>
+                This file may contain hidden data and warrants further investigation.
+            </div>
+            <h3>📋 Recommended Actions:</h3>
+            <ul>
+                <li>Run additional steganography detection tools</li>
+                <li>Attempt content extraction with various methods</li>
+                <li>Monitor for additional suspicious files</li>
+                <li>Document findings for security review</li>
+                <li>Consider additional forensic analysis</li>
+            </ul>"""
+    else:
+        html_content += """
+            <div class="risk-low">
+                ✅ LOW PROBABILITY of steganographic content.<br>
+                This file appears to be clean of hidden data based on current analysis.
+            </div>
+            <h3>📋 Recommended Actions:</h3>
+            <ul>
+                <li>File appears clean - no immediate action required</li>
+                <li>Continue standard security monitoring</li>
+                <li>Retain analysis results for audit trail</li>
+                <li>Periodic re-analysis may be beneficial</li>
+            </ul>"""
+    
+    html_content += """</div></div>"""
+    
+    # Add file metadata section
+    if metadata:
+        html_content += """
+    <div class="section">
+        <h2>📄 FILE METADATA</h2>
+        <table>
+            <tr><th>Property</th><th>Value</th></tr>"""
+        
+        for key, value in metadata.items():
+            safe_key = html.escape(str(key))
+            safe_value = html.escape(str(value))
+            html_content += f"<tr><td>{safe_key}</td><td>{safe_value}</td></tr>"
+        
+        html_content += """</table></div>"""
+    
+    # Add technical indicators section
+    if hasattr(detection_result, 'indicators') and detection_result.indicators:
+        html_content += """
+    <div class="section">
+        <h2>🔬 TECHNICAL INDICATORS</h2>
+        <table>
+            <tr><th>Indicator</th><th>Value</th><th>Weight</th><th>Impact</th></tr>"""
+        
+        for indicator, details in detection_result.indicators.items():
+            if isinstance(details, dict):
+                # Handle both 'value' and 'score' keys safely
+                raw_value = details.get('value', details.get('score', 0))
+                weight = details.get('weight', 'N/A')
+                
+                # Safe numeric conversion
+                try:
+                    if isinstance(raw_value, (int, float)):
+                        numeric_value = float(raw_value)
+                    else:
+                        # Try to extract number from string like "0.85" or "85%"
+                        clean_str = str(raw_value).replace('%', '').strip()
+                        numeric_value = float(clean_str) if clean_str.replace('.', '').isdigit() else 0.0
+                except (ValueError, AttributeError):
+                    numeric_value = 0.0
+                
+                # Safe HTML escaping
+                safe_indicator = html.escape(indicator.replace('_', ' ').title())
+                safe_value = html.escape(str(raw_value))
+                safe_weight = html.escape(str(weight))
+                
+                # Color coding based on numeric value
+                impact_color = '#ff0040' if numeric_value > 0.7 else '#ff8c00' if numeric_value > 0.3 else '#00ff00'
+                impact_level = 'High' if numeric_value > 0.7 else 'Medium' if numeric_value > 0.3 else 'Low'
+                
+                html_content += f"""<tr>
+                    <td>{safe_indicator}</td>
+                    <td style="color: {impact_color};">{safe_value}</td>
+                    <td>{safe_weight}</td>
+                    <td style="color: {impact_color};">{impact_level}</td>
+                </tr>"""
+        
+        html_content += """</table></div>"""
+    
+    # Add extraction results if available
+    if extracted_data and len(extracted_data) > 0:
+        html_content += """
+    <div class="section">
+        <h2>🔓 EXTRACTION RESULTS</h2>"""
+        
+        for i, result in enumerate(extracted_data[:5], 1):
+            success_color = '#00ff00' if result.get('success', False) else '#ff0040'
+            html_content += f"""
+            <div class="extraction-result">
+                <h3 style="color: {success_color};">Method #{i}: {result.get('method', 'Unknown')}</h3>
+                <div class="metric">
+                    <div class="metric-label">Confidence</div>
+                    <div class="metric-value">{result.get('confidence', 0) * 100:.1f}%</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Status</div>
+                    <div class="metric-value" style="color: {success_color};">{'SUCCESS' if result.get('success', False) else 'FAILED'}</div>
+                </div>"""
+            
+            if result.get('content'):
+                content = str(result['content'])[:500]  # Limit for display
+                safe_content = html.escape(content)
+                truncated = '...' if len(str(result['content'])) > 500 else ''
+                html_content += f"""
+                <h4>Extracted Content:</h4>
+                <div class="code-block">{safe_content}{truncated}</div>"""
+            
+            html_content += "</div>"
+        
+        html_content += "</div>"
+    
+    # Add analysis explanation if available
+    if hasattr(detection_result, 'explanation'):
+        safe_explanation = html.escape(str(detection_result.explanation))
+        html_content += f"""
+    <div class="section">
+        <h2>📊 ANALYSIS EXPLANATION</h2>
+        <div class="neon-border">
+            {safe_explanation}
+        </div>
+    </div>"""
+    
+    # Add channel analysis if available
+    if channel_analysis:
+        html_content += """
+    <div class="section">
+        <h2>🌈 CHANNEL ANALYSIS SUMMARY</h2>
+        <div class="neon-border">
+            <h3>RGB Channel Statistics:</h3>
+            <table>
+                <tr><th>Channel</th><th>Mean</th><th>Std Dev</th><th>Entropy</th><th>Anomalies</th></tr>"""
+        
+        if 'red_stats' in channel_analysis:
+            for channel, stats in [('Red', channel_analysis.get('red_stats', {})), 
+                                   ('Green', channel_analysis.get('green_stats', {})), 
+                                   ('Blue', channel_analysis.get('blue_stats', {}))]:
+                anomaly_count = len(stats.get('anomalies', []))
+                anomaly_color = '#ff0040' if anomaly_count > 0 else '#00ff00'
+                html_content += f"""
+                <tr>
+                    <td>{channel}</td>
+                    <td>{stats.get('mean', 'N/A')}</td>
+                    <td>{stats.get('std', 'N/A')}</td>
+                    <td>{stats.get('entropy', 'N/A')}</td>
+                    <td style="color: {anomaly_color};">{anomaly_count} detected</td>
+                </tr>"""
+        
+        html_content += """</table></div></div>"""
+    
+    # Footer
+    html_content += f"""
+    <div class="footer">
+        <p>Generated by DEEP ANAL v1.0 - Hardcore Steganography Analysis System</p>
+        <p>Report ID: {datetime.now().strftime('%Y%m%d_%H%M%S')} | Analysis Engine: Advanced Multi-Method Detection</p>
+        <p>⚡ CLASSIFIED ANALYSIS COMPLETE ⚡</p>
+    </div>
+</body>
+</html>"""
+    
+    return html_content
 
 def generate_text_report(filename, detection_result, metadata, likelihood):
     """Generate human-readable text report"""
@@ -666,6 +1050,19 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                         results = brute_force_decode(temp_path)
                                         successful_results = [r for r in results if r.success and r.confidence > 0.3]
                                         
+                                        # Store extraction results in session state for HTML report
+                                        if successful_results:
+                                            extraction_data = []
+                                            for result in successful_results:
+                                                extraction_data.append({
+                                                    'method': result.method,
+                                                    'success': result.success,
+                                                    'confidence': result.confidence,
+                                                    'content': result.data.decode('utf-8', errors='ignore')[:1000] if result.data else None,
+                                                    'data_size': len(result.data) if result.data else 0
+                                                })
+                                            st.session_state.extraction_results = extraction_data
+                                        
                                         if successful_results:
                                             st.success(f"✅ Found {len(successful_results)} potential hidden content(s)!")
                                             for i, result in enumerate(successful_results[:3]):  # Show top 3
@@ -1075,8 +1472,8 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                         likelihood
                     )
                     
-                    # Show download buttons side by side
-                    col1, col2 = st.columns(2)
+                    # Show download buttons side by side (three columns)
+                    col1, col2, col3 = st.columns(3)
                     
                     with col1:
                         st.download_button(
@@ -1097,6 +1494,67 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                             help="Download human-readable analysis report",
                             use_container_width=True
                         )
+                    
+                    with col3:
+                        # Generate comprehensive HTML report
+                        try:
+                            # Collect all available analysis data
+                            extracted_data = []
+                            channel_analysis = None
+                            
+                            # Try to collect extraction results from session state if available
+                            if hasattr(st.session_state, 'extraction_results'):
+                                extracted_data = st.session_state.extraction_results
+                            
+                            # Try to collect channel analysis data from session state if available
+                            if hasattr(st.session_state, 'channel_analysis'):
+                                channel_analysis = st.session_state.channel_analysis
+                            
+                            # Generate HTML report with all available data
+                            html_report = generate_comprehensive_html_report(
+                                filename=uploaded_file.name,
+                                detection_result=detection_result,
+                                metadata=metadata,
+                                likelihood=likelihood,
+                                extracted_data=extracted_data,
+                                channel_analysis=channel_analysis,
+                                file_size=file_size,
+                                entropy=entropy_value
+                            )
+                            
+                            st.download_button(
+                                label="🌐 Complete Analysis Report (HTML)",
+                                data=html_report,
+                                file_name=f"DEEP_ANAL_comprehensive_report_{uploaded_file.name.rsplit('.', 1)[0]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                                mime="text/html",
+                                help="Download comprehensive analysis report as viewable HTML file",
+                                use_container_width=True,
+                                type="primary"
+                            )
+                        except Exception as e:
+                            st.error(f"Failed to generate HTML report: {str(e)}")
+                            # Fallback HTML button without extra data
+                            try:
+                                html_report = generate_comprehensive_html_report(
+                                    filename=uploaded_file.name,
+                                    detection_result=detection_result,
+                                    metadata=metadata,
+                                    likelihood=likelihood,
+                                    file_size=file_size,
+                                    entropy=entropy_value
+                                )
+                                
+                                st.download_button(
+                                    label="🌐 Complete Analysis Report (HTML)",
+                                    data=html_report,
+                                    file_name=f"DEEP_ANAL_comprehensive_report_{uploaded_file.name.rsplit('.', 1)[0]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                                    mime="text/html",
+                                    help="Download comprehensive analysis report as viewable HTML file",
+                                    use_container_width=True,
+                                    type="primary"
+                                )
+                            except Exception as fallback_error:
+                                st.error(f"HTML report generation failed: {str(fallback_error)}")
                         
                 except Exception as e:
                     st.error(f"Failed to generate report: {str(e)}")
@@ -1255,6 +1713,17 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                     red_analysis = create_channel_analysis_visualization(temp_path, 'red')
                     green_analysis = create_channel_analysis_visualization(temp_path, 'green')
                     blue_analysis = create_channel_analysis_visualization(temp_path, 'blue')
+                    
+                    # Store channel analysis data in session state for HTML report
+                    if red_analysis and green_analysis and blue_analysis:
+                        st.session_state.channel_analysis = {
+                            'red_stats': red_analysis.get('stats', {}),
+                            'green_stats': green_analysis.get('stats', {}),
+                            'blue_stats': blue_analysis.get('stats', {}),
+                            'red_anomalies': red_analysis.get('anomalies', []),
+                            'green_anomalies': green_analysis.get('anomalies', []),
+                            'blue_anomalies': blue_analysis.get('anomalies', [])
+                        }
                     
                     if red_analysis and green_analysis and blue_analysis:
                         # Display annotated anomaly analysis first if there are any anomalies
