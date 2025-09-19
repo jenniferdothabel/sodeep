@@ -2056,13 +2056,13 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                     st.error(f"Channel analysis failed: {str(e)}")
         else:
             if file_type in ['heic', 'heif'] and not HEIF_AVAILABLE:
-            st.error("🖼️ HEIC/HEIF format not supported - pillow-heif library not available")
-            st.info("💡 Convert your HEIC file to PNG or JPEG format for analysis")
-        else:
-            base_list = "PNG, JPEG, TIFF, BMP, WEBP, GIF"
-            heif_list = ", HEIC/HEIF" if HEIF_AVAILABLE else ""
-            st.error(f"⚠️ Could not process this image format. Supported formats: {base_list}{heif_list}")
-            st.info("💡 Try converting to PNG or JPEG if analysis fails.")
+                st.error("🖼️ HEIC/HEIF format not supported - pillow-heif library not available")
+                st.info("💡 Convert your HEIC file to PNG or JPEG format for analysis")
+            else:
+                base_list = "PNG, JPEG, TIFF, BMP, WEBP, GIF"
+                heif_list = ", HEIC/HEIF" if HEIF_AVAILABLE else ""
+                st.error(f"⚠️ Could not process this image format. Supported formats: {base_list}{heif_list}")
+                st.info("💡 Try converting to PNG or JPEG if analysis fails.")
     
     except Exception as e:
         st.error(f"Critical error: {str(e)}")
