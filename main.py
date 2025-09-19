@@ -88,6 +88,175 @@ def save_extracted_binary(data, method_name, method_index=None):
     except Exception as e:
         return None
 
+def create_bulk_extraction_csv(results, filename_prefix="bulk_extraction"):
+    """Create CSV download for multiple extraction results"""
+    if not results:
+        return None
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    csv_lines = ["Method,Success,Confidence,Content_Type,Size_Bytes,Preview"]
+    
+    for result in results:
+        try:
+            method = result.method if hasattr(result, 'method') else 'Unknown'
+            success = str(result.success) if hasattr(result, 'success') else 'Unknown'
+            confidence = f"{result.confidence:.3f}" if hasattr(result, 'confidence') else '0'
+            
+            if result.data:
+                size_bytes = len(result.data)
+                try:
+                    # Try to determine if it's text
+                    text_data = result.data.decode('utf-8', errors='ignore')
+                    if len(text_data.strip()) > 0 and all(ord(c) < 127 for c in text_data[:100]):
+                        content_type = "text"
+                        preview = text_data[:100].replace('\n', '\\n').replace('\r', '\\r').replace('"', "'")
+                    else:
+                        content_type = "binary"
+                        preview = result.data[:16].hex() + "..." if len(result.data) > 16 else result.data.hex()
+                except:
+                    content_type = "binary" 
+                    preview = result.data[:16].hex() + "..." if len(result.data) > 16 else result.data.hex()
+            else:
+                size_bytes = 0
+                content_type = "empty"
+                preview = ""
+            
+            # Escape CSV values
+            csv_line = f'"{method}",{success},{confidence},{content_type},{size_bytes},"{preview}"'
+            csv_lines.append(csv_line)
+        except Exception as e:
+            csv_lines.append(f'"Error",False,0,error,0,"Failed to process: {str(e)}"')
+    
+    csv_content = '\n'.join(csv_lines)
+    filename = f"{filename_prefix}_{timestamp}.csv"
+    
+    return csv_content, filename
+
+def create_extraction_download_buttons(data, method_name, is_text=True):
+    """Create download buttons for extracted content in multiple formats"""
+    if not data:
+        return
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    # Better filename sanitization
+    safe_method = method_name.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('"', '_').replace("'", '_')
+    
+    if is_text:
+        # Text content - 4 columns
+        col1, col2, col3, col4 = st.columns(4)
+        text_data = data if isinstance(data, str) else data.decode('utf-8', errors='ignore')
+        binary_data = text_data.encode('utf-8')
+        
+        with col1:
+            st.download_button(
+                label="📄 .txt",
+                data=text_data,
+                file_name=f"extracted_{safe_method}_{timestamp}.txt",
+                mime="text/plain",
+                help="Download as text file",
+                use_container_width=True
+            )
+        
+        with col2:
+            # JSON format for text
+            json_data = {
+                "method": method_name,
+                "extraction_timestamp": timestamp,
+                "content_type": "text",
+                "content": text_data,
+                "size_bytes": len(binary_data),
+                "encoding": "utf-8"
+            }
+            st.download_button(
+                label="📋 .json",
+                data=json.dumps(json_data, indent=2, ensure_ascii=False),
+                file_name=f"extracted_{safe_method}_{timestamp}.json",
+                mime="application/json",
+                help="Download as structured JSON",
+                use_container_width=True
+            )
+        
+        with col3:
+            # Hex format with size limit
+            if len(binary_data) > 50000:  # 50KB limit for hex display
+                hex_preview = binary_data[:10000].hex()
+                formatted_hex = f"# File too large for full hex display\n# Showing first 10KB of {len(binary_data)} bytes\n" + ' '.join(hex_preview[i:i+2] for i in range(0, len(hex_preview), 2))
+            else:
+                hex_data = binary_data.hex()
+                formatted_hex = ' '.join(hex_data[i:i+2] for i in range(0, len(hex_data), 2))
+            
+            st.download_button(
+                label="🔍 .hex",
+                data=formatted_hex,
+                file_name=f"extracted_{safe_method}_{timestamp}.hex",
+                mime="text/plain",
+                help="Download as hexadecimal",
+                use_container_width=True
+            )
+        
+        with col4:
+            st.download_button(
+                label="💾 .bin",
+                data=binary_data,
+                file_name=f"extracted_{safe_method}_{timestamp}.bin",
+                mime="application/octet-stream",
+                help="Download as binary file",
+                use_container_width=True
+            )
+    else:
+        # Binary content - 3 columns (no .txt)
+        col1, col2, col3 = st.columns(3)
+        binary_data = data if isinstance(data, bytes) else data.encode('utf-8')
+        
+        with col1:
+            # JSON format for binary with base64 encoding
+            import base64
+            json_data = {
+                "method": method_name,
+                "extraction_timestamp": timestamp,
+                "content_type": "binary",
+                "encoding": "base64",
+                "content": base64.b64encode(binary_data).decode('ascii'),
+                "size_bytes": len(binary_data),
+                "preview_hex": binary_data[:32].hex() if len(binary_data) > 0 else ""
+            }
+            st.download_button(
+                label="📋 .json",
+                data=json.dumps(json_data, indent=2),
+                file_name=f"extracted_{safe_method}_{timestamp}.json",
+                mime="application/json",
+                help="Download as structured JSON with base64 content",
+                use_container_width=True
+            )
+        
+        with col2:
+            # Hex format with size limit
+            if len(binary_data) > 50000:  # 50KB limit
+                hex_preview = binary_data[:10000].hex()
+                formatted_hex = f"# File too large for full hex display\n# Showing first 10KB of {len(binary_data)} bytes\n" + ' '.join(hex_preview[i:i+2] for i in range(0, len(hex_preview), 2))
+            else:
+                hex_data = binary_data.hex()
+                formatted_hex = ' '.join(hex_data[i:i+2] for i in range(0, len(hex_data), 2))
+            
+            st.download_button(
+                label="🔍 .hex",
+                data=formatted_hex,
+                file_name=f"extracted_{safe_method}_{timestamp}.hex",
+                mime="text/plain",
+                help="Download as hexadecimal",
+                use_container_width=True
+            )
+        
+        with col3:
+            st.download_button(
+                label="💾 .bin",
+                data=binary_data,
+                file_name=f"extracted_{safe_method}_{timestamp}.bin",
+                mime="application/octet-stream",
+                help="Download as binary file",
+                use_container_width=True
+            )
+
 def generate_detection_report(filename, detection_result, metadata, likelihood):
     """Generate comprehensive detection report for download"""
     
@@ -1078,6 +1247,19 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                         
                                         if successful_results:
                                             st.success(f"✅ Found {len(successful_results)} potential hidden content(s)!")
+                                            
+                                            # Add CSV download for multiple results
+                                            if len(successful_results) > 1:
+                                                csv_data, csv_filename = create_bulk_extraction_csv(successful_results, "auto_extraction_results")
+                                                st.download_button(
+                                                    label="📊 Download All Results (CSV)",
+                                                    data=csv_data,
+                                                    file_name=csv_filename,
+                                                    mime="text/csv",
+                                                    help="Download summary of all extraction results",
+                                                    use_container_width=False
+                                                )
+                                            
                                             for i, result in enumerate(successful_results[:3]):  # Show top 3
                                                 st.write(f"**Method {i+1}: {result.method}** (Confidence: {result.confidence:.2f})")
                                                 
@@ -1088,24 +1270,20 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                                         text_data = result.data.decode('utf-8', errors='ignore')
                                                         if len(text_data.strip()) > 0 and all(ord(c) < 127 for c in text_data[:100]):
                                                             st.text_area(f"Extracted Text {i+1}:", text_data[:1000], height=100)
+                                                            st.markdown("**💾 Download Options:**")
+                                                            create_extraction_download_buttons(text_data, f"{result.method}_text_{i+1}", is_text=True)
                                                         else:
                                                             st.write(f"**Binary data found:** {len(result.data)} bytes")
                                                             # Show hex preview
                                                             hex_preview = ' '.join(f'{b:02x}' for b in result.data[:32])
                                                             st.code(f"Hex preview: {hex_preview}{'...' if len(result.data) > 32 else ''}")
                                                             
-                                                            # Save binary data to file for external analysis
-                                                            saved_file = save_extracted_binary(result.data, result.method, i+1)
-                                                            if saved_file:
-                                                                st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
-                                                                st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
+                                                            st.markdown("**💾 Download Options:**")
+                                                            create_extraction_download_buttons(result.data, f"{result.method}_binary_{i+1}", is_text=False)
                                                     except:
                                                         st.write(f"**Binary data found:** {len(result.data)} bytes")
-                                                        # Save binary data to file for external analysis
-                                                        saved_file = save_extracted_binary(result.data, result.method, i+1)
-                                                        if saved_file:
-                                                            st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
-                                                            st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
+                                                        st.markdown("**💾 Download Options:**")
+                                                        create_extraction_download_buttons(result.data, f"{result.method}_binary_{i+1}", is_text=False)
                                         else:
                                             st.warning("No clear hidden content found with automatic methods")
                                     except Exception as e:
@@ -1135,13 +1313,12 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                                     text_data = best_result.data.decode('utf-8', errors='ignore')
                                                     if len(text_data.strip()) > 0:
                                                         st.text_area("Extracted LSB Text:", text_data[:1000], height=100)
+                                                        st.markdown("**💾 Download Options:**")
+                                                        create_extraction_download_buttons(text_data, "LSB_extraction", is_text=True)
                                                     else:
                                                         st.write(f"**Binary LSB data:** {len(best_result.data)} bytes")
-                                                        # Save binary data to file for external analysis
-                                                        saved_file = save_extracted_binary(best_result.data, "LSB", 2)
-                                                        if saved_file:
-                                                            st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
-                                                            st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
+                                                        st.markdown("**💾 Download Options:**")
+                                                        create_extraction_download_buttons(best_result.data, "LSB_binary", is_text=False)
                                                 except:
                                                     st.write(f"**Binary LSB data:** {len(best_result.data)} bytes")
                                                     # Save binary data to file for external analysis
@@ -1168,13 +1345,12 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                                     text_data = result.data.decode('utf-8', errors='ignore')
                                                     if len(text_data.strip()) > 0:
                                                         st.text_area("Extracted Steghide Text:", text_data, height=100)
+                                                        st.markdown("**💾 Download Options:**")
+                                                        create_extraction_download_buttons(text_data, "Steghide_extraction", is_text=True)
                                                     else:
                                                         st.write(f"**Binary data extracted:** {len(result.data)} bytes")
-                                                        # Save binary data to file for external analysis
-                                                        saved_file = save_extracted_binary(result.data, "Steghide", 3)
-                                                        if saved_file:
-                                                            st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
-                                                            st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
+                                                        st.markdown("**💾 Download Options:**")
+                                                        create_extraction_download_buttons(result.data, "Steghide_binary", is_text=False)
                                                         # Offer download
                                                         st.download_button(
                                                             "Download extracted file",
@@ -1197,13 +1373,12 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                                         try:
                                                             text_data = pass_result.data.decode('utf-8', errors='ignore')
                                                             st.text_area("Extracted Text:", text_data, height=100)
+                                                            st.markdown("**💾 Download Options:**")
+                                                            create_extraction_download_buttons(text_data, "Steghide_password_extraction", is_text=True)
                                                         except:
                                                             st.write(f"**Binary data extracted:** {len(pass_result.data)} bytes")
-                                                            # Save binary data to file for external analysis
-                                                            saved_file = save_extracted_binary(pass_result.data, "Steghide_Password", 4)
-                                                            if saved_file:
-                                                                st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
-                                                                st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
+                                                            st.markdown("**💾 Download Options:**")
+                                                            create_extraction_download_buttons(pass_result.data, "Steghide_password_binary", is_text=False)
                                                 else:
                                                     st.error("Password extraction failed")
                                     except Exception as e:
@@ -1268,10 +1443,8 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                                     st.write(f"Confidence: {result.confidence:.2f}")
                                                     
                                                     if result.data:
-                                                        # Save binary data
-                                                        saved_file = save_extracted_binary(result.data, f"xor_result_{i+1}", 20+i)
-                                                        if saved_file:
-                                                            st.info(f"💾 XOR result saved as: `{saved_file}`")
+                                                        st.markdown("**💾 Download Options:**")
+                                                        create_extraction_download_buttons(result.data, f"XOR_result_{i+1}", is_text=False)
                                                         
                                                         try:
                                                             # Try to display as text
@@ -1306,13 +1479,12 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                                 try:
                                                     text_data = result.data.decode('utf-8', errors='ignore')
                                                     st.text_area("Metadata Hidden Text:", text_data, height=100)
+                                                    st.markdown("**💾 Download Options:**")
+                                                    create_extraction_download_buttons(text_data, "Metadata_extraction", is_text=True)
                                                 except:
                                                     st.write(f"**Binary metadata:** {len(result.data)} bytes")
-                                                    # Save binary data to file for external analysis
-                                                    saved_file = save_extracted_binary(result.data, "Metadata", 5)
-                                                    if saved_file:
-                                                        st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
-                                                        st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
+                                                    st.markdown("**💾 Download Options:**")
+                                                    create_extraction_download_buttons(result.data, "Metadata_binary", is_text=False)
                                         else:
                                             st.info("No hidden data found in metadata")
                                     except Exception as e:
@@ -1334,13 +1506,12 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                                     text_data = result.data.decode('utf-8', errors='ignore')
                                                     if len(text_data.strip()) > 0:
                                                         st.text_area("Extracted Multi-bit Text:", text_data[:1000], height=100)
+                                                        st.markdown("**💾 Download Options:**")
+                                                        create_extraction_download_buttons(text_data, "Multi_bit_LSB_extraction", is_text=True)
                                                     else:
                                                         st.write(f"**Binary data:** {len(result.data)} bytes")
-                                                        # Save binary data to file for external analysis
-                                                        saved_file = save_extracted_binary(result.data, "Multi_LSB", 6)
-                                                        if saved_file:
-                                                            st.success(f"💾 Binary data saved to `{saved_file}` for external analysis")
-                                                            st.code(f"Analyze with: file {saved_file} && binwalk {saved_file} && strings {saved_file}")
+                                                        st.markdown("**💾 Download Options:**")
+                                                        create_extraction_download_buttons(result.data, "Multi_bit_LSB_binary", is_text=False)
                                                 except:
                                                     st.write(f"**Binary data:** {len(result.data)} bytes")
                                                     # Save binary data to file for external analysis
