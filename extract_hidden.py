@@ -38,12 +38,26 @@ if uploaded_file:
         if file_type == 'png':
             with st.spinner("Running comprehensive ZSTEG scan..."):
                 try:
-                    # Run ZSTEG with all options
+                    # Set up environment with gem bin path
+                    import os
+                    env = os.environ.copy()
+                    gem_bin_path = "/home/runner/workspace/.local/share/gem/ruby/3.1.0/bin"
+                    
+                    # Add gem bin to PATH
+                    if 'PATH' in env:
+                        if gem_bin_path not in env['PATH']:
+                            env['PATH'] = f"{gem_bin_path}:{env['PATH']}"
+                    else:
+                        env['PATH'] = gem_bin_path
+                    
+                    # Run ZSTEG with all options using full path
+                    zsteg_cmd = f"{gem_bin_path}/zsteg"
                     result = subprocess.run(
-                        ['zsteg', '-a', str(temp_path)],
+                        [zsteg_cmd, '-a', str(temp_path)],
                         capture_output=True,
                         text=True,
-                        timeout=60
+                        timeout=60,
+                        env=env
                     )
                     
                     if result.stdout and result.stdout.strip():

@@ -150,11 +150,20 @@ def run_zsteg(file_path):
         
         for line in lines:
             line = line.strip()
-            if line and not any(skip in line.lower() for skip in [
+            # Skip empty lines and common noise
+            if not line:
+                continue
+            # Skip lines that end with ".." (nothing found indicator)
+            if line.endswith('..'):
+                continue
+            # Skip common warnings and non-findings
+            if any(skip in line.lower() for skip in [
                 'system temporary path', 'world-writable', 'nothing', 
-                'possible image block size', 'downscaling may be necessary'
+                'possible image block size', 'downscaling may be necessary',
+                '[=] nothing'
             ]):
-                meaningful_lines.append(line)
+                continue
+            meaningful_lines.append(line)
         
         if meaningful_lines:
             return "\n".join(meaningful_lines)
