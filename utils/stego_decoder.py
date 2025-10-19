@@ -79,28 +79,66 @@ def decode_lsb(image_path, bit_plane=0, channel=0):
                     bit = (pixel[channel] >> bit_plane) & 1
                     extracted_bits.append(bit)
         
-        # Convert bits to bytes
-        extracted_bytes = bytearray()
+        # Convert bits to bytes - try both MSB and LSB first ordering
+        # MSB-first (traditional)
+        extracted_bytes_msb = bytearray()
         for i in range(0, len(extracted_bits) // 8):
             byte = 0
             for j in range(8):
                 if i*8 + j < len(extracted_bits):
                     byte = (byte << 1) | extracted_bits[i*8 + j]
-            extracted_bytes.append(byte)
+            extracted_bytes_msb.append(byte)
         
-        # Check if the data looks like valid content
-        confidence = assess_data_validity(extracted_bytes)
+        # LSB-first (alternative common encoding)
+        extracted_bytes_lsb = bytearray()
+        for i in range(0, len(extracted_bits) // 8):
+            byte = 0
+            for j in range(8):
+                if i*8 + j < len(extracted_bits):
+                    byte = byte | (extracted_bits[i*8 + j] << j)
+            extracted_bytes_lsb.append(byte)
+        
+        # Check which ordering gives better results
+        confidence_msb = assess_data_validity(extracted_bytes_msb)
+        confidence_lsb = assess_data_validity(extracted_bytes_lsb)
+        
+        # Use whichever has higher confidence
+        if confidence_lsb > confidence_msb:
+            extracted_bytes = extracted_bytes_lsb
+            confidence = confidence_lsb
+            bit_order = "LSB-first"
+        else:
+            extracted_bytes = extracted_bytes_msb
+            confidence = confidence_msb
+            bit_order = "MSB-first"
+        
+        # LOWERED threshold from 0.3 to 0.1 for better detection
+        # Also try to detect ANY readable text, not just high-confidence
+        has_readable_text = False
+        if len(extracted_bytes) > 10:
+            try:
+                sample_text = extracted_bytes[:500].decode('utf-8', errors='ignore')
+                # Check if there's ANY readable English text (even a single word)
+                import re
+                words = re.findall(r'\b[A-Za-z]{2,}\b', sample_text)
+                if len(words) >= 1:  # Even 1 word is significant
+                    has_readable_text = True
+                    confidence = max(confidence, 0.4)  # Boost confidence
+            except:
+                pass
         
         # Create DecoderResult
         return DecoderResult(
-            method=f"LSB (Channel: {channel}, Bit: {bit_plane})",
+            method=f"LSB (Channel: {channel}, Bit: {bit_plane}, {bit_order})",
             data=bytes(extracted_bytes),
-            success=confidence > 0.3,
+            success=confidence > 0.1 or has_readable_text,  # LOWERED from 0.3
             confidence=confidence,
             info={
                 "bit_plane": bit_plane,
                 "channel": channel,
-                "total_bits": len(extracted_bits)
+                "bit_order": bit_order,
+                "total_bits": len(extracted_bits),
+                "has_readable_text": has_readable_text
             }
         )
         
@@ -146,26 +184,61 @@ def decode_multi_bit_lsb(image_path, bits=2, channel=0):
                     for bit in range(bits):
                         extracted_bits.append((pixel[channel] >> bit) & 1)
         
-        # Convert bits to bytes
-        extracted_bytes = bytearray()
+        # Convert bits to bytes - try both bit orders
+        # MSB-first
+        extracted_bytes_msb = bytearray()
         for i in range(0, len(extracted_bits) // 8):
             byte = 0
             for j in range(8):
                 if i*8 + j < len(extracted_bits):
                     byte = (byte << 1) | extracted_bits[i*8 + j]
-            extracted_bytes.append(byte)
+            extracted_bytes_msb.append(byte)
         
-        # Assess confidence
-        confidence = assess_data_validity(extracted_bytes)
+        # LSB-first
+        extracted_bytes_lsb = bytearray()
+        for i in range(0, len(extracted_bits) // 8):
+            byte = 0
+            for j in range(8):
+                if i*8 + j < len(extracted_bits):
+                    byte = byte | (extracted_bits[i*8 + j] << j)
+            extracted_bytes_lsb.append(byte)
+        
+        # Choose best
+        confidence_msb = assess_data_validity(extracted_bytes_msb)
+        confidence_lsb = assess_data_validity(extracted_bytes_lsb)
+        
+        if confidence_lsb > confidence_msb:
+            extracted_bytes = extracted_bytes_lsb
+            confidence = confidence_lsb
+            bit_order = "LSB-first"
+        else:
+            extracted_bytes = extracted_bytes_msb
+            confidence = confidence_msb
+            bit_order = "MSB-first"
+        
+        # Check for readable text (same as single-bit LSB)
+        has_readable_text = False
+        if len(extracted_bytes) > 10:
+            try:
+                sample_text = extracted_bytes[:500].decode('utf-8', errors='ignore')
+                import re
+                words = re.findall(r'\b[A-Za-z]{2,}\b', sample_text)
+                if len(words) >= 1:
+                    has_readable_text = True
+                    confidence = max(confidence, 0.4)
+            except:
+                pass
         
         return DecoderResult(
-            method=f"Multi-bit LSB (Bits: {bits}, Channel: {channel})",
+            method=f"Multi-bit LSB (Bits: {bits}, Channel: {channel}, {bit_order})",
             data=bytes(extracted_bytes),
-            success=confidence > 0.3,
+            success=confidence > 0.1 or has_readable_text,  # LOWERED from 0.3
             confidence=confidence,
             info={
                 "bits_used": bits,
-                "channel": channel
+                "channel": channel,
+                "bit_order": bit_order,
+                "has_readable_text": has_readable_text
             }
         )
         
@@ -433,25 +506,43 @@ def assess_data_validity(data):
         if data.startswith(sig):
             return conf
     
-    # Check for plaintext
+    # Check for plaintext - LOWERED THRESHOLDS for better detection
     try:
-        text = data.decode('utf-8', errors='ignore')
-        printable_ratio = sum(c.isprintable() for c in text) / len(text)
+        text = data[:2000].decode('utf-8', errors='ignore')  # Only check first 2KB for speed
         
-        if printable_ratio > 0.9:
-            # Likely text
-            if any(marker in text.lower() for marker in ['http://', 'https://', '.com', '.org', '.net']):
-                confidence = max(confidence, 0.8)  # Contains URLs
+        if len(text) == 0:
+            return confidence
+        
+        # Count printable characters
+        printable_ratio = sum(c.isprintable() or c in '\n\r\t' for c in text) / len(text)
+        
+        # LOWERED from 0.9 to 0.6 - more lenient threshold
+        if printable_ratio > 0.6:
+            # Check for meaningful patterns
+            if any(marker in text.lower() for marker in ['http://', 'https://', '.com', '.org', '.net', 'www.']):
+                confidence = max(confidence, 0.85)  # Contains URLs
             
             if re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text):
-                confidence = max(confidence, 0.8)  # Contains emails
+                confidence = max(confidence, 0.85)  # Contains emails
             
+            # Look for English words - LOWERED from 5 to 3 words
             word_pattern = r'\b[A-Za-z]{3,15}\b'
             words = re.findall(word_pattern, text)
             
-            if len(words) > 5:
+            if len(words) >= 3:
                 # Probably contains actual text
                 confidence = max(confidence, 0.7)
+            elif len(words) >= 1 and printable_ratio > 0.75:
+                # Some text content
+                confidence = max(confidence, 0.5)
+        
+        # Even if not highly printable, check for common patterns
+        elif printable_ratio > 0.4:
+            # Check for repeated words or patterns that suggest hidden messages
+            word_pattern = r'\b[A-Za-z]{4,}\b'
+            words = re.findall(word_pattern, text)
+            if len(words) >= 2:
+                confidence = max(confidence, 0.4)
                 
                 # Check for meaningful word transitions
                 meaningful_transitions = 0
