@@ -94,10 +94,33 @@ def get_byte_frequency(file_path):
         return list(range(256)), [0] * 256
 
 def get_hex_dump(file_path, num_bytes=256):
-    """Get hexadecimal dump of the file."""
+    """Get hexadecimal dump of the file (pure Python implementation)."""
     try:
-        output = run_command(['xxd', '-l', str(num_bytes)], file_path)
-        return output
+        with open(file_path, 'rb') as f:
+            data = f.read(num_bytes)
+        
+        if not data:
+            return "File is empty"
+        
+        # Format like xxd output
+        lines = []
+        for i in range(0, len(data), 16):
+            chunk = data[i:i+16]
+            
+            # Hexadecimal offset
+            offset = f"{i:08x}:"
+            
+            # Hexadecimal representation (two groups of 8 bytes)
+            hex_part1 = ' '.join(f"{b:02x}" for b in chunk[:8])
+            hex_part2 = ' '.join(f"{b:02x}" for b in chunk[8:])
+            hex_repr = f"{hex_part1:<23} {hex_part2:<23}"
+            
+            # ASCII representation
+            ascii_repr = ''.join(chr(b) if 32 <= b < 127 else '.' for b in chunk)
+            
+            lines.append(f"{offset} {hex_repr}  {ascii_repr}")
+        
+        return '\n'.join(lines)
     except Exception as e:
         return f"Error getting hex dump: {str(e)}"
         
