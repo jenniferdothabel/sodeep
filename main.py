@@ -24,7 +24,9 @@ from utils.file_analysis import (
 from utils.visualizations import (
     create_entropy_plot, create_byte_frequency_plot, format_hex_dump,
     create_detailed_view, create_strings_visualization,
-    create_channel_analysis_visualization, create_channel_comparison_plot
+    create_channel_analysis_visualization, create_channel_comparison_plot,
+    create_byte_frequency_plot_upgraded, create_bitplane_visualizer,
+    create_rgb_3d_scatter, create_entropy_terrain_map, create_segment_structure_mapper
 )
 from utils.database import (
     save_analysis, get_recent_analyses, get_analysis_by_id, DB_AVAILABLE
@@ -1256,6 +1258,72 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                     bytes_values, frequencies = get_byte_frequency(temp_path)
                     freq_plot = create_byte_frequency_plot(bytes_values, frequencies)
                     st.plotly_chart(freq_plot, use_container_width=True)
+                
+                st.markdown("---")
+                st.subheader("🆕 Advanced Visualization Modules")
+                
+                # New Byte Frequency Module (Upgraded with 2D/3D toggle)
+                with st.expander("📊 Byte Frequency Analysis [UPDATED]", expanded=False):
+                    st.write("**Toggle between 2D heatmap and 3D bar graph visualization**")
+                    viz_mode = st.radio("Visualization Mode:", ['3D Bar Graph', '2D Heatmap'], horizontal=True)
+                    mode = '3d' if viz_mode == '3D Bar Graph' else '2d'
+                    
+                    try:
+                        freq_upgraded = create_byte_frequency_plot_upgraded(temp_path, mode=mode)
+                        st.plotly_chart(freq_upgraded, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Error generating byte frequency plot: {str(e)}")
+                
+                # Bitplane Visualizer
+                with st.expander("🔲 Bitplane Analysis (24 Layers)", expanded=False):
+                    st.write("**Visualize individual bit layers across RGB channels**")
+                    group_mode = st.selectbox("Bitplane Group:", ['LSB (Bits 0-3)', 'MSB (Bits 4-7)', 'All 24 Bitplanes'])
+                    mode_map = {'LSB (Bits 0-3)': 'lsb', 'MSB (Bits 4-7)': 'msb', 'All 24 Bitplanes': 'all'}
+                    
+                    try:
+                        bitplane_fig = create_bitplane_visualizer(temp_path, group_mode=mode_map[group_mode])
+                        st.plotly_chart(bitplane_fig, use_container_width=True)
+                        st.caption("White pixels = bit value 1, Black pixels = bit value 0")
+                    except Exception as e:
+                        st.error(f"Error generating bitplane visualization: {str(e)}")
+                
+                # RGB 3D Scatter Plot
+                with st.expander("🌈 RGB Color Space Distribution", expanded=False):
+                    st.write("**Map each pixel's RGB values into 3D color space**")
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        sample_size = st.slider("Sample Size:", 1000, 10000, 5000, step=1000)
+                    with col_b:
+                        enable_density = st.checkbox("Enable Density Smoothing", value=True)
+                    
+                    try:
+                        rgb_scatter = create_rgb_3d_scatter(temp_path, sample_size=sample_size, enable_density=enable_density)
+                        st.plotly_chart(rgb_scatter, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Error generating RGB scatter plot: {str(e)}")
+                
+                # Entropy Terrain Map
+                with st.expander("🗺️ Entropy Terrain Map", expanded=False):
+                    st.write("**Block-based Shannon entropy visualization as 3D heightmap**")
+                    block_size = st.select_slider("Block Size:", options=[8, 16, 32, 64], value=16)
+                    
+                    try:
+                        entropy_terrain = create_entropy_terrain_map(temp_path, block_size=block_size)
+                        st.plotly_chart(entropy_terrain, use_container_width=True)
+                        st.caption("Higher peaks indicate higher entropy (more randomness) in that region")
+                    except Exception as e:
+                        st.error(f"Error generating entropy terrain map: {str(e)}")
+                
+                # Segment Structure Mapper
+                with st.expander("🧩 File Structure Map", expanded=False):
+                    st.write("**Parse and visualize file format structure (chunks/segments)**")
+                    
+                    try:
+                        structure_map = create_segment_structure_mapper(temp_path)
+                        st.plotly_chart(structure_map, use_container_width=True)
+                        st.caption("Shows internal file structure: PNG chunks, JPEG markers, or generic blocks")
+                    except Exception as e:
+                        st.error(f"Error generating structure map: {str(e)}")
             
             with tab2:
                 st.subheader("Steganography Detection Results")
