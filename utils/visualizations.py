@@ -1519,3 +1519,676 @@ def create_channel_comparison_plot(red_stats, green_stats, blue_stats):
     )
     
     return fig
+
+
+# ============================================================================
+# NEW VISUALIZATION MODULES [UPDATED]
+# ============================================================================
+
+def create_byte_frequency_plot_upgraded(image_path, mode='3d'):
+    """
+    [UPDATED] Upgraded Byte Frequency Module with 2D/3D toggle.
+    
+    Args:
+        image_path: Path to image file
+        mode: '2d' for heatmap, '3d' for bar graph (default: '3d')
+    
+    Returns:
+        Plotly figure object
+    """
+    # Read image and extract byte values
+    img = Image.open(image_path)
+    img_array = np.array(img)
+    
+    # Flatten to get all byte values
+    if len(img_array.shape) == 3:
+        bytes_data = img_array.reshape(-1)
+    else:
+        bytes_data = img_array.flatten()
+    
+    # Calculate frequency distribution
+    byte_counts = np.bincount(bytes_data, minlength=256)
+    byte_values = np.arange(256)
+    
+    if mode == '2d':
+        # 2D Heatmap mode
+        # Reshape into 16x16 grid for visualization
+        heatmap_data = byte_counts.reshape(16, 16)
+        
+        fig = go.Figure(data=go.Heatmap(
+            z=heatmap_data,
+            colorscale=[
+                [0, '#000014'],
+                [0.2, '#00ffff'],
+                [0.4, '#0080ff'],
+                [0.6, '#ff00ff'],
+                [0.8, '#ff0080'],
+                [1, '#ffff00']
+            ],
+            colorbar=dict(
+                title=dict(
+                    text="FREQUENCY",
+                    font=dict(color='#00ffff', family='monospace')
+                ),
+                tickfont=dict(color='#00ffff'),
+                len=0.7
+            ),
+            hovertemplate='Byte: %{x},%{y}<br>Freq: %{z}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            title=dict(
+                text="BYTE FREQUENCY HEATMAP [2D MODE]",
+                font=dict(size=24, color='#00ffff', family='monospace'),
+                x=0.5
+            ),
+            xaxis=dict(
+                title=dict(text="BYTE COLUMN", font=dict(color='#00ffff')),
+                gridcolor='rgba(0,255,255,0.2)',
+                tickfont=dict(color='#00ffff')
+            ),
+            yaxis=dict(
+                title=dict(text="BYTE ROW", font=dict(color='#ff00ff')),
+                gridcolor='rgba(255,0,255,0.2)',
+                tickfont=dict(color='#ff00ff')
+            ),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,20,0.9)',
+            font=dict(family='monospace'),
+            height=600
+        )
+        
+    else:
+        # 3D Bar Graph mode
+        fig = go.Figure()
+        
+        # Normalize frequencies for better visualization
+        freq_norm = byte_counts / np.max(byte_counts) if np.max(byte_counts) > 0 else byte_counts
+        
+        # Add 3D bars
+        fig.add_trace(go.Bar3d(
+            x=byte_values,
+            y=np.zeros_like(byte_values),
+            z=np.zeros_like(byte_values),
+            dx=0.8,
+            dy=0.8,
+            dz=freq_norm,
+            color=byte_values,
+            colorscale=[
+                [0, '#00ffff'],
+                [0.3, '#0080ff'],
+                [0.5, '#ff00ff'],
+                [0.7, '#ff0080'],
+                [1, '#ffff00']
+            ],
+            colorbar=dict(
+                title=dict(text="BYTE VALUE", font=dict(color='#00ffff')),
+                tickfont=dict(color='#00ffff')
+            ),
+            hovertemplate='Byte: %{x:02X}h<br>Frequency: %{dz:.3f}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            title=dict(
+                text="BYTE FREQUENCY ANALYSIS [3D MODE]",
+                font=dict(size=24, color='#00ffff', family='monospace'),
+                x=0.5
+            ),
+            scene=dict(
+                xaxis=dict(
+                    title=dict(text="BYTE VALUE", font=dict(color='#00ffff')),
+                    gridcolor='rgba(0,255,255,0.2)',
+                    tickfont=dict(color='#00ffff'),
+                    showbackground=True,
+                    backgroundcolor='rgba(0,0,20,0.9)'
+                ),
+                yaxis=dict(
+                    title=dict(text="", font=dict(color='#ff00ff')),
+                    showticklabels=False,
+                    gridcolor='rgba(255,0,255,0.2)',
+                    showbackground=True,
+                    backgroundcolor='rgba(0,0,20,0.9)'
+                ),
+                zaxis=dict(
+                    title=dict(text="FREQUENCY", font=dict(color='#ffff00')),
+                    gridcolor='rgba(255,255,0,0.2)',
+                    tickfont=dict(color='#ffff00'),
+                    showbackground=True,
+                    backgroundcolor='rgba(0,0,20,0.9)'
+                ),
+                camera=dict(
+                    eye=dict(x=1.5, y=1.5, z=1.3)
+                )
+            ),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            height=700
+        )
+    
+    return fig
+
+
+def create_bitplane_visualizer(image_path, group_mode='all'):
+    """
+    Bitplane Visualizer - Extract and display all 24 bitplanes (8 per RGB channel).
+    
+    Args:
+        image_path: Path to image file
+        group_mode: 'all' (all 24), 'lsb' (bits 0-3), 'msb' (bits 4-7)
+    
+    Returns:
+        Plotly figure object with bitplane visualizations
+    """
+    # Load image
+    img = Image.open(image_path).convert('RGB')
+    img_array = np.array(img)
+    height, width = img_array.shape[:2]
+    
+    # Determine which bits to display
+    if group_mode == 'lsb':
+        bit_range = range(4)  # Bits 0-3
+        title_suffix = "[LSB LAYERS 0-3]"
+    elif group_mode == 'msb':
+        bit_range = range(4, 8)  # Bits 4-7
+        title_suffix = "[MSB LAYERS 4-7]"
+    else:
+        bit_range = range(8)  # All bits 0-7
+        title_suffix = "[ALL 24 BITPLANES]"
+    
+    # Extract bitplanes
+    channels = ['R', 'G', 'B']
+    channel_colors = ['#ff0000', '#00ff00', '#0000ff']
+    
+    # Create subplot grid
+    rows = len(bit_range)
+    cols = 3
+    
+    fig = make_subplots(
+        rows=rows, cols=cols,
+        subplot_titles=[f'{ch} Bit {b}' for b in bit_range for ch in channels],
+        vertical_spacing=0.02,
+        horizontal_spacing=0.01,
+        specs=[[{'type': 'heatmap'} for _ in range(cols)] for _ in range(rows)]
+    )
+    
+    # Extract and plot each bitplane
+    for bit_idx, bit in enumerate(bit_range):
+        for ch_idx, channel_name in enumerate(channels):
+            # Extract bitplane
+            channel_data = img_array[:, :, ch_idx]
+            bitplane = (channel_data >> bit) & 1
+            
+            # Add to subplot
+            row = bit_idx + 1
+            col = ch_idx + 1
+            
+            fig.add_trace(
+                go.Heatmap(
+                    z=bitplane,
+                    colorscale=[[0, '#000000'], [1, channel_colors[ch_idx]]],
+                    showscale=False,
+                    hovertemplate=f'{channel_name} Bit {bit}<br>Value: %{{z}}<extra></extra>'
+                ),
+                row=row, col=col
+            )
+    
+    # Update all axes to remove ticks
+    fig.update_xaxes(showticklabels=False, showgrid=False)
+    fig.update_yaxes(showticklabels=False, showgrid=False)
+    
+    fig.update_layout(
+        title=dict(
+            text=f"BITPLANE ANALYSIS {title_suffix}",
+            font=dict(size=20, color='#00ffff', family='monospace'),
+            x=0.5
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,20,0.9)',
+        height=200 * rows,
+        showlegend=False,
+        margin=dict(t=60, b=20, l=20, r=20)
+    )
+    
+    return fig
+
+
+def create_rgb_3d_scatter(image_path, sample_size=5000, enable_density=True):
+    """
+    RGB 3D Scatter Plot - Map each pixel's RGB values into 3D color space.
+    
+    Args:
+        image_path: Path to image file
+        sample_size: Number of pixels to sample (for performance)
+        enable_density: Apply density smoothing and color fade
+    
+    Returns:
+        Plotly figure object
+    """
+    # Load image
+    img = Image.open(image_path).convert('RGB')
+    img_array = np.array(img)
+    
+    # Flatten to get all pixels
+    pixels = img_array.reshape(-1, 3)
+    
+    # Sample if too many pixels
+    if len(pixels) > sample_size:
+        indices = np.random.choice(len(pixels), sample_size, replace=False)
+        pixels = pixels[indices]
+    
+    # Extract RGB coordinates
+    r_vals = pixels[:, 0]
+    g_vals = pixels[:, 1]
+    b_vals = pixels[:, 2]
+    
+    # Create color array for markers (actual pixel colors)
+    pixel_colors = [f'rgb({r},{g},{b})' for r, g, b in pixels]
+    
+    # Calculate density if enabled
+    if enable_density:
+        # Simple density estimation: count nearby points
+        from scipy.spatial import cKDTree
+        tree = cKDTree(pixels)
+        density = np.array([len(tree.query_ball_point(p, r=30)) for p in pixels])
+        marker_opacity = np.clip(0.3 + (density / np.max(density)) * 0.7, 0.1, 1.0)
+        marker_size = 2 + (density / np.max(density)) * 4
+    else:
+        marker_opacity = 0.6
+        marker_size = 3
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter3d(
+        x=r_vals,
+        y=g_vals,
+        z=b_vals,
+        mode='markers',
+        marker=dict(
+            size=marker_size,
+            color=pixel_colors,
+            opacity=marker_opacity,
+            line=dict(width=0)
+        ),
+        hovertemplate='R: %{x}<br>G: %{y}<br>B: %{z}<extra></extra>',
+        name='Pixels'
+    ))
+    
+    # Add axis reference lines
+    max_val = 255
+    axis_line_color = 'rgba(255,255,255,0.3)'
+    
+    # R axis
+    fig.add_trace(go.Scatter3d(
+        x=[0, max_val], y=[0, 0], z=[0, 0],
+        mode='lines',
+        line=dict(color='#ff0000', width=3),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
+    
+    # G axis
+    fig.add_trace(go.Scatter3d(
+        x=[0, 0], y=[0, max_val], z=[0, 0],
+        mode='lines',
+        line=dict(color='#00ff00', width=3),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
+    
+    # B axis
+    fig.add_trace(go.Scatter3d(
+        x=[0, 0], y=[0, 0], z=[0, max_val],
+        mode='lines',
+        line=dict(color='#0000ff', width=3),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
+    
+    fig.update_layout(
+        title=dict(
+            text="RGB COLOR SPACE DISTRIBUTION",
+            font=dict(size=24, color='#00ffff', family='monospace'),
+            x=0.5
+        ),
+        scene=dict(
+            xaxis=dict(
+                title=dict(text="RED CHANNEL", font=dict(color='#ff0000')),
+                range=[0, 255],
+                gridcolor='rgba(255,0,0,0.2)',
+                tickfont=dict(color='#ff0000'),
+                showbackground=True,
+                backgroundcolor='rgba(0,0,20,0.9)'
+            ),
+            yaxis=dict(
+                title=dict(text="GREEN CHANNEL", font=dict(color='#00ff00')),
+                range=[0, 255],
+                gridcolor='rgba(0,255,0,0.2)',
+                tickfont=dict(color='#00ff00'),
+                showbackground=True,
+                backgroundcolor='rgba(0,0,20,0.9)'
+            ),
+            zaxis=dict(
+                title=dict(text="BLUE CHANNEL", font=dict(color='#0000ff')),
+                range=[0, 255],
+                gridcolor='rgba(0,0,255,0.2)',
+                tickfont=dict(color='#0000ff'),
+                showbackground=True,
+                backgroundcolor='rgba(0,0,20,0.9)'
+            ),
+            camera=dict(
+                eye=dict(x=1.5, y=1.5, z=1.5)
+            )
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        height=700
+    )
+    
+    return fig
+
+
+def create_entropy_terrain_map(image_path, block_size=16):
+    """
+    Entropy Terrain Map - Block-based Shannon entropy visualization.
+    
+    Args:
+        image_path: Path to image file
+        block_size: Size of blocks for entropy calculation (default: 16x16)
+    
+    Returns:
+        Plotly figure object
+    """
+    # Load image
+    img = Image.open(image_path).convert('L')  # Convert to grayscale for entropy
+    img_array = np.array(img)
+    height, width = img_array.shape
+    
+    # Calculate number of blocks
+    n_blocks_h = height // block_size
+    n_blocks_w = width // block_size
+    
+    # Initialize entropy map
+    entropy_map = np.zeros((n_blocks_h, n_blocks_w))
+    
+    # Calculate Shannon entropy for each block
+    for i in range(n_blocks_h):
+        for j in range(n_blocks_w):
+            # Extract block
+            block = img_array[i*block_size:(i+1)*block_size, 
+                             j*block_size:(j+1)*block_size]
+            
+            # Calculate histogram
+            hist, _ = np.histogram(block.flatten(), bins=256, range=(0, 256))
+            hist = hist / np.sum(hist)  # Normalize
+            hist = hist[hist > 0]  # Remove zeros
+            
+            # Shannon entropy
+            if len(hist) > 0:
+                entropy_map[i, j] = -np.sum(hist * np.log2(hist))
+    
+    # Create 3D surface plot
+    x = np.arange(n_blocks_w) * block_size
+    y = np.arange(n_blocks_h) * block_size
+    X, Y = np.meshgrid(x, y)
+    
+    fig = go.Figure()
+    
+    # Main terrain surface
+    fig.add_trace(go.Surface(
+        x=X,
+        y=Y,
+        z=entropy_map,
+        colorscale=[
+            [0, '#000014'],
+            [0.2, '#0000ff'],
+            [0.4, '#00ffff'],
+            [0.6, '#00ff00'],
+            [0.8, '#ffff00'],
+            [1, '#ff0000']
+        ],
+        colorbar=dict(
+            title=dict(
+                text="ENTROPY",
+                font=dict(color='#00ffff', family='monospace')
+            ),
+            tickfont=dict(color='#00ffff'),
+            len=0.7
+        ),
+        hovertemplate='Block: (%{x}, %{y})<br>Entropy: %{z:.3f}<extra></extra>',
+        lighting=dict(
+            ambient=0.6,
+            diffuse=0.8,
+            specular=0.9,
+            roughness=0.3,
+            fresnel=0.5
+        )
+    ))
+    
+    # Add contour lines at base
+    fig.add_trace(go.Contour(
+        x=x,
+        y=y,
+        z=entropy_map,
+        colorscale=[[0, 'rgba(0,255,255,0.3)'], [1, 'rgba(255,0,255,0.3)']],
+        showscale=False,
+        contours=dict(
+            showlabels=True,
+            labelfont=dict(size=8, color='#00ffff')
+        ),
+        hoverinfo='skip'
+    ))
+    
+    # Calculate statistics
+    avg_entropy = np.mean(entropy_map)
+    max_entropy = np.max(entropy_map)
+    min_entropy = np.min(entropy_map)
+    std_entropy = np.std(entropy_map)
+    
+    fig.update_layout(
+        title=dict(
+            text=f"ENTROPY TERRAIN MAP (Block Size: {block_size}x{block_size})",
+            font=dict(size=20, color='#00ffff', family='monospace'),
+            x=0.5
+        ),
+        scene=dict(
+            xaxis=dict(
+                title=dict(text="X COORDINATE", font=dict(color='#00ffff')),
+                gridcolor='rgba(0,255,255,0.2)',
+                tickfont=dict(color='#00ffff'),
+                showbackground=True,
+                backgroundcolor='rgba(0,0,20,0.9)'
+            ),
+            yaxis=dict(
+                title=dict(text="Y COORDINATE", font=dict(color='#ff00ff')),
+                gridcolor='rgba(255,0,255,0.2)',
+                tickfont=dict(color='#ff00ff'),
+                showbackground=True,
+                backgroundcolor='rgba(0,0,20,0.9)'
+            ),
+            zaxis=dict(
+                title=dict(text="SHANNON ENTROPY", font=dict(color='#ffff00')),
+                gridcolor='rgba(255,255,0,0.2)',
+                tickfont=dict(color='#ffff00'),
+                showbackground=True,
+                backgroundcolor='rgba(0,0,20,0.9)'
+            ),
+            camera=dict(
+                eye=dict(x=1.5, y=1.5, z=1.3)
+            )
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        height=700,
+        annotations=[
+            dict(
+                text=f"AVG: {avg_entropy:.3f} | MAX: {max_entropy:.3f} | MIN: {min_entropy:.3f} | STD: {std_entropy:.3f}",
+                x=0.5,
+                y=0.02,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(color='#00ffff', size=12, family='monospace'),
+                bgcolor='rgba(0,0,30,0.8)',
+                bordercolor='#00ffff',
+                borderwidth=2,
+                borderpad=8
+            )
+        ]
+    )
+    
+    return fig
+
+
+def create_segment_structure_mapper(image_path):
+    """
+    Segment Structure Mapper - Parse and visualize file format structure.
+    
+    Args:
+        image_path: Path to image file
+    
+    Returns:
+        Plotly figure object showing file structure
+    """
+    import os
+    
+    # Read file as binary
+    with open(image_path, 'rb') as f:
+        file_data = f.read()
+    
+    file_size = len(file_data)
+    
+    # Detect file format from magic bytes
+    magic_bytes = file_data[:16]
+    
+    segments = []
+    
+    # PNG parser
+    if file_data[:8] == b'\x89PNG\r\n\x1a\n':
+        offset = 8
+        while offset < file_size:
+            if offset + 8 > file_size:
+                break
+            
+            # Read chunk length and type
+            chunk_len = int.from_bytes(file_data[offset:offset+4], 'big')
+            chunk_type = file_data[offset+4:offset+8].decode('ascii', errors='replace')
+            
+            # Total chunk size includes length (4) + type (4) + data + CRC (4)
+            total_size = chunk_len + 12
+            
+            segments.append({
+                'type': f'PNG:{chunk_type}',
+                'offset': offset,
+                'size': total_size,
+                'color': '#00ffff' if chunk_type == 'IDAT' else '#ff00ff'
+            })
+            
+            offset += total_size
+            
+            if chunk_type == 'IEND':
+                break
+    
+    # JPEG parser
+    elif file_data[:2] == b'\xff\xd8':
+        offset = 0
+        while offset < file_size - 1:
+            if file_data[offset] == 0xff:
+                marker = file_data[offset+1]
+                
+                # Marker names
+                marker_names = {
+                    0xd8: 'SOI', 0xd9: 'EOI', 0xda: 'SOS',
+                    0xdb: 'DQT', 0xc0: 'SOF0', 0xc4: 'DHT',
+                    0xe0: 'APP0', 0xe1: 'APP1', 0xfe: 'COM'
+                }
+                
+                marker_name = marker_names.get(marker, f'{marker:02X}')
+                
+                # Special markers without length
+                if marker in [0xd8, 0xd9]:
+                    size = 2
+                else:
+                    if offset + 3 < file_size:
+                        size = int.from_bytes(file_data[offset+2:offset+4], 'big') + 2
+                    else:
+                        break
+                
+                segments.append({
+                    'type': f'JPEG:{marker_name}',
+                    'offset': offset,
+                    'size': size,
+                    'color': '#ffff00' if marker == 0xda else '#00ff00'
+                })
+                
+                offset += size
+            else:
+                offset += 1
+    
+    # Generic format or unknown
+    else:
+        # Create blocks of the file
+        block_size = max(1024, file_size // 20)
+        for i in range(0, file_size, block_size):
+            segments.append({
+                'type': f'Block {i//block_size}',
+                'offset': i,
+                'size': min(block_size, file_size - i),
+                'color': '#ff00ff'
+            })
+    
+    # Create timeline visualization
+    fig = go.Figure()
+    
+    # Add segments as bars
+    for seg in segments:
+        fig.add_trace(go.Bar(
+            x=[seg['size']],
+            y=[seg['type']],
+            orientation='h',
+            marker=dict(
+                color=seg['color'],
+                line=dict(color='#ffffff', width=1)
+            ),
+            hovertemplate=f"<b>{seg['type']}</b><br>" +
+                         f"Offset: {seg['offset']:,} bytes<br>" +
+                         f"Size: {seg['size']:,} bytes<extra></extra>",
+            showlegend=False
+        ))
+    
+    fig.update_layout(
+        title=dict(
+            text=f"FILE STRUCTURE MAP ({os.path.basename(image_path)})",
+            font=dict(size=20, color='#00ffff', family='monospace'),
+            x=0.5
+        ),
+        xaxis=dict(
+            title=dict(text="SIZE (bytes)", font=dict(color='#00ffff')),
+            gridcolor='rgba(0,255,255,0.2)',
+            tickfont=dict(color='#00ffff')
+        ),
+        yaxis=dict(
+            title=dict(text="SEGMENT", font=dict(color='#ff00ff')),
+            tickfont=dict(color='#ff00ff', size=10)
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,20,0.9)',
+        height=max(400, len(segments) * 30),
+        barmode='stack',
+        annotations=[
+            dict(
+                text=f"Total Size: {file_size:,} bytes | Segments: {len(segments)}",
+                x=0.5,
+                y=1.05,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(color='#00ffff', size=14, family='monospace'),
+                bgcolor='rgba(0,0,30,0.8)',
+                bordercolor='#00ffff',
+                borderwidth=2,
+                borderpad=6
+            )
+        ]
+    )
+    
+    return fig
