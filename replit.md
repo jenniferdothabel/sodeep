@@ -42,7 +42,11 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 
 ### 3. Visualization Engine (`utils/visualizations.py`)
 - **3D Entropy Plots**: Interactive cyberpunk-themed entropy visualization
-- **Frequency Analysis**: Byte frequency distribution charts
+- **Frequency Analysis**: Byte frequency distribution charts (2D/3D modes)
+- **Bitplane Visualizer**: Extract and display all 24 bitplanes (8 per RGB channel)
+- **RGB 3D Scatter Plot**: Map pixels into 3D color space with density smoothing
+- **Entropy Terrain Map**: Block-based Shannon entropy heightmap visualization
+- **Segment Structure Mapper**: Parse and visualize file format structure (PNG/JPEG/generic)
 - **Word Cloud Generation**: String extraction visualization
 - **Color-Coded Results**: Visual feedback based on detection confidence
 - **Responsive Design**: Adaptive layouts for different screen sizes
@@ -108,6 +112,12 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Graceful Degradation**: Database-optional operation for reliability
 
 ## Changelog
+- October 24, 2025: Added 5 advanced visualization modules:
+  1. Byte Frequency Upgrade (2D heatmap / 3D bar graph toggle)
+  2. Bitplane Visualizer (24-layer analysis for LSB/MSB detection)
+  3. RGB 3D Scatter Plot (color space distribution with density analysis)
+  4. Entropy Terrain Map (block-based Shannon entropy heightmap)
+  5. Segment Structure Mapper (PNG chunks, JPEG markers, file format parsing)
 - August 30, 2025: Added OCR text extraction with steganographic pattern analysis and XOR decoding capabilities with automatic key detection
 - August 29, 2025: Added extensive image format support (TIFF, HEIC, BMP, WEBP, GIF), ZIP batch upload, and comprehensive video format support (MP4, AVI, MOV, WMV, FLV, MKV, WEBM)
 - June 15, 2025: Initial setup
