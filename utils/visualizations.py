@@ -1599,34 +1599,59 @@ def create_byte_frequency_plot_upgraded(image_path, mode='3d'):
         )
         
     else:
-        # 3D Bar Graph mode
+        # 3D Bar Graph mode (using Scatter3d with marker sizes)
         fig = go.Figure()
         
         # Normalize frequencies for better visualization
         freq_norm = byte_counts / np.max(byte_counts) if np.max(byte_counts) > 0 else byte_counts
         
-        # Add 3D bars
-        fig.add_trace(go.Bar3d(
+        # Create 3D bars using Scatter3d markers
+        fig.add_trace(go.Scatter3d(
             x=byte_values,
             y=np.zeros_like(byte_values),
-            z=np.zeros_like(byte_values),
-            dx=0.8,
-            dy=0.8,
-            dz=freq_norm,
-            color=byte_values,
-            colorscale=[
-                [0, '#00ffff'],
-                [0.3, '#0080ff'],
-                [0.5, '#ff00ff'],
-                [0.7, '#ff0080'],
-                [1, '#ffff00']
-            ],
-            colorbar=dict(
-                title=dict(text="BYTE VALUE", font=dict(color='#00ffff')),
-                tickfont=dict(color='#00ffff')
+            z=freq_norm,
+            mode='markers',
+            marker=dict(
+                size=8,
+                color=byte_values,
+                colorscale=[
+                    [0, '#00ffff'],
+                    [0.3, '#0080ff'],
+                    [0.5, '#ff00ff'],
+                    [0.7, '#ff0080'],
+                    [1, '#ffff00']
+                ],
+                colorbar=dict(
+                    title=dict(text="BYTE VALUE", font=dict(color='#00ffff')),
+                    tickfont=dict(color='#00ffff')
+                ),
+                symbol='square',
+                line=dict(color='#ffffff', width=0.5)
             ),
-            hovertemplate='Byte: %{x:02X}h<br>Frequency: %{dz:.3f}<extra></extra>'
+            hovertemplate='Byte: %{x:02X}h<br>Frequency: %{z:.3f}<extra></extra>',
+            name='Byte Frequency'
         ))
+        
+        # Add vertical lines to create bar effect
+        for i in range(0, 256, 4):  # Sample every 4th byte to avoid clutter
+            if freq_norm[i] > 0.05:  # Only show significant bars
+                fig.add_trace(go.Scatter3d(
+                    x=[i, i],
+                    y=[0, 0],
+                    z=[0, freq_norm[i]],
+                    mode='lines',
+                    line=dict(
+                        color=byte_values[i],
+                        width=3,
+                        colorscale=[
+                            [0, '#00ffff'],
+                            [0.5, '#ff00ff'],
+                            [1, '#ffff00']
+                        ]
+                    ),
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
         
         fig.update_layout(
             title=dict(
@@ -1790,7 +1815,8 @@ def create_rgb_3d_scatter(image_path, sample_size=5000, enable_density=True):
         from scipy.spatial import cKDTree
         tree = cKDTree(pixels)
         density = np.array([len(tree.query_ball_point(p, r=30)) for p in pixels])
-        marker_opacity = np.clip(0.3 + (density / np.max(density)) * 0.7, 0.1, 1.0)
+        # Convert density to color intensity instead of opacity
+        marker_opacity = 0.6  # Fixed opacity
         marker_size = 2 + (density / np.max(density)) * 4
     else:
         marker_opacity = 0.6
