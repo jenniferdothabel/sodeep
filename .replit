@@ -6,7 +6,7 @@ packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "streamlit run main.py --server.address=0.0.0.0 --server.port=5001"]
+run = ["sh", "-c", "streamlit run main.py --server.address=0.0.0.0 --server.port=5000"]
 
 [workflows]
 runButton = "Project"
@@ -86,10 +86,10 @@ outputType = "console"
 
 [[ports]]
 localPort = 5000
+externalPort = 80
 
 [[ports]]
 localPort = 5001
-externalPort = 80
 
 [[ports]]
 localPort = 5002
