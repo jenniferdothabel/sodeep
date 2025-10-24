@@ -301,8 +301,8 @@ def generate_detection_report(filename, detection_result, metadata, likelihood):
     
     return report
 
-def generate_comprehensive_html_report(filename, detection_result, metadata, likelihood, extracted_data=None, channel_analysis=None, file_size=0, entropy=0):
-    """Generate comprehensive HTML report with all analysis data"""
+def generate_comprehensive_html_report(filename, detection_result, metadata, likelihood, extracted_data=None, channel_analysis=None, file_size=0, entropy=0, image_path=None):
+    """Generate comprehensive HTML report with all analysis data and interactive visualizations"""
     
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     risk_level = 'HIGH' if likelihood >= 0.7 else 'MEDIUM' if likelihood >= 0.3 else 'LOW'
@@ -314,6 +314,7 @@ def generate_comprehensive_html_report(filename, detection_result, metadata, lik
 <head>
     <meta charset="UTF-8">
     <title>DEEP ANAL - Analysis Report: {filename}</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
         
@@ -671,6 +672,68 @@ def generate_comprehensive_html_report(filename, detection_result, metadata, lik
                 </tr>"""
         
         html_content += """</table></div></div>"""
+    
+    # Add interactive visualizations if image_path is provided
+    if image_path and os.path.exists(image_path):
+        html_content += """
+    <div class="section">
+        <h2>📊 INTERACTIVE VISUALIZATIONS</h2>
+        <p style="color: #00ffff;">The following charts are fully interactive - you can rotate 3D plots, zoom, and hover for details!</p>"""
+        
+        try:
+            # Generate entropy visualization
+            from utils.visualizations import create_entropy_plot
+            entropy_fig = create_entropy_plot(entropy, lower_staging=False)
+            entropy_html = entropy_fig.to_html(include_plotlyjs=False, div_id="entropy_plot", config={'responsive': True})
+            html_content += f"""
+        <div class="neon-border">
+            <h3>🌀 3D Entropy Visualization</h3>
+            <p style="color: #9400d3; font-size: 0.9rem;">Interactive 3D representation of file entropy ({entropy:.4f})</p>
+            {entropy_html}
+        </div>"""
+        except Exception as e:
+            html_content += f'<p style="color: #ff0040;">Could not generate entropy visualization: {str(e)}</p>'
+        
+        try:
+            # Generate byte frequency plot
+            from utils.file_analysis import calculate_byte_histogram
+            from utils.visualizations import create_byte_frequency_plot
+            
+            bytes_vals, freqs = calculate_byte_histogram(image_path)
+            freq_fig = create_byte_frequency_plot(bytes_vals, freqs, lower_staging=False)
+            freq_html = freq_fig.to_html(include_plotlyjs=False, div_id="frequency_plot", config={'responsive': True})
+            html_content += f"""
+        <div class="neon-border" style="margin-top: 20px;">
+            <h3>📈 Byte Frequency Analysis</h3>
+            <p style="color: #9400d3; font-size: 0.9rem;">Distribution of byte values throughout the file</p>
+            {freq_html}
+        </div>"""
+        except Exception as e:
+            html_content += f'<p style="color: #ff0040;">Could not generate frequency visualization: {str(e)}</p>'
+        
+        try:
+            # Generate channel analysis if it's an image
+            from utils.visualizations import create_channel_analysis_visualization
+            from PIL import Image as PILImage
+            
+            # Check if it's a valid image
+            test_img = PILImage.open(image_path)
+            if test_img.mode in ['RGB', 'RGBA']:
+                # Create channel plots - only do one channel to keep report size reasonable
+                channel_result = create_channel_analysis_visualization(image_path, channel='red')
+                if channel_result and isinstance(channel_result, dict) and 'lsb_plot' in channel_result:
+                    lsb_fig = channel_result['lsb_plot']
+                    channel_html = lsb_fig.to_html(include_plotlyjs=False, div_id="red_channel_lsb", config={'responsive': True})
+                    html_content += f"""
+        <div class="neon-border" style="margin-top: 20px;">
+            <h3>🎨 Red Channel LSB Analysis</h3>
+            <p style="color: #9400d3; font-size: 0.9rem;">Least significant bit distribution in red channel</p>
+            {channel_html}
+        </div>"""
+        except Exception as e:
+            pass  # Silently skip if not an image or error
+        
+        html_content += "</div>"
     
     # Footer
     html_content += f"""
@@ -1703,7 +1766,8 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                 extracted_data=extracted_data,
                                 channel_analysis=channel_analysis,
                                 file_size=file_size,
-                                entropy=entropy_value
+                                entropy=entropy_value,
+                                image_path=temp_path
                             )
                             
                             st.download_button(
@@ -1725,7 +1789,8 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                     metadata=metadata,
                                     likelihood=likelihood,
                                     file_size=file_size,
-                                    entropy=entropy_value
+                                    entropy=entropy_value,
+                                    image_path=temp_path
                                 )
                                 
                                 st.download_button(
