@@ -697,17 +697,16 @@ def generate_comprehensive_html_report(filename, detection_result, metadata, lik
             html_content += f'<p style="color: #ff0040;">Could not generate entropy visualization: {str(e)}</p>'
         
         try:
-            # Generate byte frequency plot
-            from utils.file_analysis import calculate_byte_histogram
-            from utils.visualizations import create_byte_frequency_plot
+            # Generate byte frequency plot using upgraded module
+            from utils.visualizations import create_byte_frequency_plot_upgraded
             
-            bytes_vals, freqs = calculate_byte_histogram(image_path)
-            freq_fig = create_byte_frequency_plot(bytes_vals, freqs, lower_staging=False)
+            # Use 3D mode for the HTML report
+            freq_fig = create_byte_frequency_plot_upgraded(image_path, mode='3d')
             freq_html = freq_fig.to_html(include_plotlyjs=False, div_id="frequency_plot", config={'responsive': True})
             html_content += f"""
         <div class="neon-border" style="margin-top: 20px;">
-            <h3>📈 Byte Frequency Analysis</h3>
-            <p style="color: #9400d3; font-size: 0.9rem;">Distribution of byte values throughout the file</p>
+            <h3>📈 Byte Frequency Analysis (3D)</h3>
+            <p style="color: #9400d3; font-size: 0.9rem;">Interactive 3D distribution of byte values throughout the file</p>
             {freq_html}
         </div>"""
         except Exception as e:
