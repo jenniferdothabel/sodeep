@@ -7,15 +7,14 @@ import os
 import json
 from openai import OpenAI
 
-# the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-# do not change this unless explicitly requested by the user
+# Using GPT-4o as requested by the user
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 class SteganographyAssistant:
     """AI assistant for steganography analysis and investigation guidance."""
     
     def __init__(self):
-        self.model = "gpt-5"  # Using the latest model
+        self.model = "gpt-4o"  # GPT-4o (text + vision)
         
     def analyze_detection_results(self, detection_result, file_metadata, extracted_content=None):
         """
