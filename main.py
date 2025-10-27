@@ -36,6 +36,7 @@ from utils.stego_decoder import (
     brute_force_decode, decode_lsb, decode_multi_bit_lsb, 
     try_steghide_extract, extract_metadata_hidden_data, extract_with_xor_analysis
 )
+from utils.file_identifier import identify_file_type, get_file_signature, is_safe_to_analyze
 try:
     from utils.ai_assistant import SteganographyAssistant, get_investigation_suggestions
     AI_AVAILABLE = True
@@ -915,8 +916,7 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS":
     
     uploaded_file = st.file_uploader(
         ">>> DEPLOY TARGET FILE FOR STEGANOGRAPHIC INTERROGATION",
-        type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
-        help="CLASSIFIED ANALYSIS PROTOCOLS ACTIVE",
+        help="CLASSIFIED ANALYSIS PROTOCOLS ACTIVE - ALL FILE TYPES ACCEPTED",
         label_visibility="collapsed"
     )
 else:
@@ -940,9 +940,8 @@ else:
         st.markdown("**⚡ PROTOCOL ALPHA: MULTI-TARGET UPLOAD**")
         uploaded_files = st.file_uploader(
             ">>> DEPLOY MULTIPLE TARGETS FOR BATCH INTERROGATION",
-            type=['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'heic', 'heif', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
             accept_multiple_files=True,
-            help="CLASSIFIED: MASS SURVEILLANCE ANALYSIS",
+            help="CLASSIFIED: MASS SURVEILLANCE ANALYSIS - ALL FILE TYPES ACCEPTED",
             label_visibility="collapsed"
         )
     
@@ -950,8 +949,7 @@ else:
         st.markdown("**🔥 PROTOCOL BETA: ARCHIVE DECOMPRESSION**")
         uploaded_zip = st.file_uploader(
             ">>> DEPLOY COMPRESSED ARCHIVE FOR EXTRACTION",
-            type=['zip'],
-            help="CLASSIFIED: COMPRESSED ASSET ANALYSIS",
+            help="CLASSIFIED: COMPRESSED/ARCHIVE ANALYSIS - ALL FORMATS ACCEPTED",
             label_visibility="collapsed"
         )
     
@@ -1177,6 +1175,68 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
     with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_file.name).suffix) as tmp_file:
         tmp_file.write(uploaded_file.getvalue())
         temp_path = tmp_file.name
+    
+    # File identification using magic numbers
+    st.markdown("---")
+    st.subheader("🔍 FILE IDENTIFICATION")
+    
+    file_info = identify_file_type(temp_path)
+    safety_check = is_safe_to_analyze(temp_path)
+    signature = get_file_signature(temp_path)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if "error" not in file_info:
+            st.metric("📁 File Type", file_info.get('category', 'unknown').upper())
+            st.write(f"**MIME:** `{file_info.get('mime_type', 'unknown')}`")
+        else:
+            st.error(f"File type unknown: {file_info['error']}")
+    
+    with col2:
+        file_size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
+        st.metric("📊 File Size", f"{file_size_mb:.2f} MB")
+        if "error" not in file_info:
+            st.write(f"**Binary:** {'Yes' if file_info.get('is_binary') else 'No'}")
+    
+    with col3:
+        if safety_check.get('is_safe'):
+            st.metric("✅ Safety", "SAFE")
+        else:
+            st.metric("⚠️ Safety", "WARNINGS")
+            for warning in safety_check.get('warnings', []):
+                st.warning(warning)
+    
+    # Detailed file info expander
+    with st.expander("🔬 Detailed File Analysis"):
+        st.write("**File Description:**")
+        if "error" not in file_info:
+            st.code(file_info.get('description', 'Unknown'), language='text')
+        
+        st.write("**File Signature (Magic Bytes):**")
+        if "error" not in signature:
+            col_sig1, col_sig2 = st.columns(2)
+            with col_sig1:
+                st.code(f"HEX: {signature['hex']}", language='text')
+            with col_sig2:
+                st.code(f"ASCII: {signature['ascii']}", language='text')
+        
+        if "error" not in file_info:
+            st.write("**File Characteristics:**")
+            characteristics = []
+            if file_info.get('is_binary'):
+                characteristics.append("🔹 Binary file")
+            if file_info.get('is_executable'):
+                characteristics.append("⚠️ Executable")
+            if file_info.get('is_compressed'):
+                characteristics.append("📦 Compressed/Archive")
+            if file_info.get('is_encrypted'):
+                characteristics.append("🔐 Encrypted")
+            
+            for char in characteristics:
+                st.write(char)
+    
+    st.markdown("---")
     
     # Check if it's a video file
     is_video = is_video_file(temp_path)
