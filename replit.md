@@ -50,6 +50,14 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Risk Assessment**: Automatic security risk level classification (critical/high/medium/low)
 - **Forensic Recommendations**: Investigation guidance for detected cryptographic content
 
+### 2.6. File Identifier (`utils/file_identifier.py`)
+- **Magic Number Detection**: Uses libmagic/file command for accurate type identification
+- **MIME Type Analysis**: Determines correct MIME type for any file
+- **Signature Extraction**: Reads and analyzes file headers and magic bytes
+- **Safety Assessment**: Checks for executables, oversized files, and encrypted content
+- **Binary Classification**: Distinguishes between text and binary files
+- **Universal Support**: Accepts and analyzes ALL file types (no restrictions)
+
 ### 3. Visualization Engine (`utils/visualizations.py`)
 - **3D Entropy Plots**: Interactive cyberpunk-themed entropy visualization
 - **Frequency Analysis**: Byte frequency distribution charts (2D/3D modes)
@@ -122,6 +130,7 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Graceful Degradation**: Database-optional operation for reliability
 
 ## Changelog
+- October 27, 2025: **Removed all file type restrictions** - application now accepts ANY file type with intelligent file identification using magic numbers. Added comprehensive File Identifier module using libmagic for MIME type detection, signature extraction, and safety assessment. Enhanced UI with file type display, magic bytes analysis, and security warnings.
 - October 27, 2025: Added PGP/GPG workflow analysis module for detecting encrypted messages, public/private keys, and signatures in extracted content. Features automatic risk assessment, key ID extraction, and forensic investigation recommendations.
 - October 24, 2025: Added 5 advanced visualization modules:
   1. Byte Frequency Upgrade (2D heatmap / 3D bar graph toggle)

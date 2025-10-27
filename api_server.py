@@ -16,6 +16,7 @@ from utils.file_analysis import (
     get_file_metadata, calculate_entropy, extract_strings, 
     analyze_file_structure, run_zsteg, extract_text_with_ocr, analyze_text_for_steganography
 )
+from utils.file_identifier import identify_file_type, is_safe_to_analyze
 from utils.stego_detector import analyze_image_for_steganography
 from utils.stego_decoder import brute_force_decode, extract_with_xor_analysis
 from utils.ai_assistant import SteganographyAssistant
@@ -43,8 +44,7 @@ def analyze_image():
                 return jsonify({"error": "No file provided"}), 400
             
             filename = secure_filename(file.filename)
-            if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.tiff', '.tif', '.heic', '.bmp', '.webp')):
-                return jsonify({"error": "Supported formats: PNG, JPEG, GIF, TIFF, HEIC, BMP, WEBP"}), 400
+            # All file types accepted - will use file identification to determine type
             
             # Save to temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix=Path(filename).suffix) as tmp_file:
