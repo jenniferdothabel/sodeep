@@ -46,6 +46,9 @@ except ImportError as e:
     def get_investigation_suggestions(likelihood, indicators):
         return ["AI Assistant not available - limited suggestions"]
         
+# App version for cache busting
+APP_VERSION = "2.1.0"  # Universal file support update
+
 def load_css():
     """Load cyberpunk CSS styling"""
     with open('.streamlit/style.css') as f:
@@ -873,6 +876,29 @@ except Exception as e:
 
 # Load cyberpunk CSS theme
 load_css()
+
+# Cache busting banner - prominently displayed at top
+st.markdown(f"""
+<div style="background: linear-gradient(135deg, #ff0040 0%, #ff00ff 100%); 
+     padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #00ffff;">
+    <h3 style="color: #fff; margin: 0; text-align: center; font-family: 'Share Tech Mono', monospace;">
+        🚀 DEEP ANAL v{APP_VERSION} - UNIVERSAL FILE SUPPORT ACTIVE
+    </h3>
+    <p style="color: #fff; margin: 10px 0 0 0; text-align: center; font-size: 0.9rem;">
+        📢 <strong>Seeing file upload restrictions?</strong> Press 
+        <code style="background: #000; padding: 2px 8px; border-radius: 3px;">Ctrl+Shift+R</code> (Windows/Linux) or 
+        <code style="background: #000; padding: 2px 8px; border-radius: 3px;">Cmd+Shift+R</code> (Mac) to load the new version!
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# Add clear cache button
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    if st.button("🔄 FORCE RELOAD - Clear All Caches", use_container_width=True, type="primary"):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.rerun()
 
 # Cyberpunk header
 st.markdown("""
