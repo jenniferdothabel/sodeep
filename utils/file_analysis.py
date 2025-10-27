@@ -347,10 +347,19 @@ def analyze_text_for_steganography(text):
     likelihood = 0.0
     
     # Check for common steganographic patterns in text
+    import re
+    
+    # 0. PGP/GPG Detection (NEW - High Priority)
+    from utils.pgp_analyzer import detect_pgp_in_text, analyze_pgp_content
+    pgp_data = None
+    if detect_pgp_in_text(text):
+        pgp_data = analyze_pgp_content(text)
+        if pgp_data.get('has_pgp'):
+            indicators.append(f"🔐 PGP/GPG blocks detected: {pgp_data.get('block_count', 0)} blocks")
+            likelihood += 0.8  # High likelihood - crypto content is significant
     
     # 1. Binary strings
     binary_pattern = r'\b[01]{8,}\b'
-    import re
     binary_matches = re.findall(binary_pattern, text)
     if binary_matches:
         indicators.append(f"Binary sequences detected: {len(binary_matches)} patterns")
@@ -402,9 +411,15 @@ def analyze_text_for_steganography(text):
             indicators.append("Unusual word repetition detected")
             likelihood += 0.2
     
-    return {
+    result = {
         "likelihood": min(likelihood, 1.0),
         "indicators": indicators,
         "text_length": len(text),
         "clean_length": len(text_clean) if 'text_clean' in locals() else 0
     }
+    
+    # Add PGP analysis data if detected
+    if pgp_data and pgp_data.get('has_pgp'):
+        result['pgp_analysis'] = pgp_data
+    
+    return result

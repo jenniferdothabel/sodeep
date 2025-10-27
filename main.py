@@ -1543,6 +1543,58 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                                                     for indicator in text_analysis['indicators']:
                                                         st.write(f"• {indicator}")
                                                 
+                                                # Display PGP analysis if detected
+                                                if 'pgp_analysis' in text_analysis:
+                                                    pgp = text_analysis['pgp_analysis']
+                                                    st.markdown("---")
+                                                    st.markdown("### 🔐 PGP/GPG Cryptographic Content Detected")
+                                                    
+                                                    # Risk level badge
+                                                    risk_level = pgp.get('risk_level', 'low')
+                                                    risk_colors = {
+                                                        'critical': '🔴',
+                                                        'high': '🟠',
+                                                        'medium': '🟡',
+                                                        'low': '🟢'
+                                                    }
+                                                    st.write(f"**Risk Level:** {risk_colors.get(risk_level, '⚪')} {risk_level.upper()}")
+                                                    
+                                                    # Summary
+                                                    st.info(pgp.get('summary', ''))
+                                                    
+                                                    # Indicators
+                                                    if pgp.get('indicators'):
+                                                        st.write("**Security Indicators:**")
+                                                        for ind in pgp['indicators']:
+                                                            st.write(f"• {ind}")
+                                                    
+                                                    # Blocks detail
+                                                    if pgp.get('blocks'):
+                                                        with st.expander(f"📋 Detected PGP Blocks ({len(pgp['blocks'])} total)"):
+                                                            for i, block in enumerate(pgp['blocks'], 1):
+                                                                st.write(f"**Block #{i}: {block['type']}**")
+                                                                if block.get('version'):
+                                                                    st.write(f"  - Version: {block['version']}")
+                                                                if block.get('key_id'):
+                                                                    st.write(f"  - Key ID: `{block['key_id']}`")
+                                                                if block.get('size_bytes'):
+                                                                    st.write(f"  - Size: {block['size_bytes']} bytes")
+                                                                if block.get('checksum'):
+                                                                    st.write(f"  - Checksum: `{block['checksum']}`")
+                                                                
+                                                                # Show content preview
+                                                                if block.get('content_preview'):
+                                                                    st.code(block['content_preview'], language='text')
+                                                                
+                                                                if i < len(pgp['blocks']):
+                                                                    st.markdown("---")
+                                                    
+                                                    # Recommendations
+                                                    if pgp.get('recommendations'):
+                                                        with st.expander("🔍 Investigation Recommendations"):
+                                                            for rec in pgp['recommendations']:
+                                                                st.write(f"• {rec}")
+                                                
                                                 # Save text as binary for external analysis
                                                 saved_file = save_extracted_binary(ocr_result['raw_text'].encode('utf-8'), "ocr_text", 10)
                                                 if saved_file:
