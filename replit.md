@@ -32,6 +32,8 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Entropy Calculation**: Statistical entropy analysis for randomness detection
 - **Hex Analysis**: Raw byte-level examination capabilities
 - **External Tool Integration**: Binwalk, steghide, foremost integration
+- **Text Pattern Analysis**: Detects binary, base64, hexadecimal patterns
+- **PGP/GPG Integration**: Automatic detection of cryptographic content
 
 ### 2. Steganography Detection (`utils/stego_detector.py`)
 - **DetectionResult Class**: Structured container for analysis results
@@ -39,6 +41,14 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Weighted Scoring**: Configurable indicator weights for accuracy tuning
 - **Confidence Calculation**: Statistical confidence metrics (46-47% sensitivity)
 - **Technique Identification**: Suspected hiding method classification
+
+### 2.5. PGP/GPG Analyzer (`utils/pgp_analyzer.py`)
+- **Armor Block Detection**: Identifies PGP BEGIN/END markers for all block types
+- **Key Analysis**: Detects public keys, private keys, and key IDs
+- **Message Detection**: Finds encrypted messages and signed content
+- **Signature Verification**: Analyzes digital signatures and checksums
+- **Risk Assessment**: Automatic security risk level classification (critical/high/medium/low)
+- **Forensic Recommendations**: Investigation guidance for detected cryptographic content
 
 ### 3. Visualization Engine (`utils/visualizations.py`)
 - **3D Entropy Plots**: Interactive cyberpunk-themed entropy visualization
@@ -112,12 +122,14 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Graceful Degradation**: Database-optional operation for reliability
 
 ## Changelog
+- October 27, 2025: Added PGP/GPG workflow analysis module for detecting encrypted messages, public/private keys, and signatures in extracted content. Features automatic risk assessment, key ID extraction, and forensic investigation recommendations.
 - October 24, 2025: Added 5 advanced visualization modules:
   1. Byte Frequency Upgrade (2D heatmap / 3D bar graph toggle)
   2. Bitplane Visualizer (24-layer analysis for LSB/MSB detection)
   3. RGB 3D Scatter Plot (color space distribution with density analysis)
   4. Entropy Terrain Map (block-based Shannon entropy heightmap)
   5. Segment Structure Mapper (PNG chunks, JPEG markers, file format parsing)
+- October 24, 2025: Updated AI assistant to use GPT-4o model
 - August 30, 2025: Added OCR text extraction with steganographic pattern analysis and XOR decoding capabilities with automatic key detection
 - August 29, 2025: Added extensive image format support (TIFF, HEIC, BMP, WEBP, GIF), ZIP batch upload, and comprehensive video format support (MP4, AVI, MOV, WMV, FLV, MKV, WEBM)
 - June 15, 2025: Initial setup
