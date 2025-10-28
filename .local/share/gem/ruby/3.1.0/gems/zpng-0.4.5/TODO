@@ -1,0 +1,21 @@
+[ ] benchmark accessing very last PNG scanline
+[ ] use iostruct
+
+ways to hide info in PNG:
+ * IHDR: longer than 13 bytes
+ * IEND:
+    * longer than  0 bytes
+    * data after IEND
+ * TEXT chunks
+ * zTXT chunks
+    * comp_method
+    * data after compressed data?
+ * IDAT:
+    * data after last scanline
+    * last bits in scanline when bpp%8 != 0
+ * PLTE:
+    * raw letters
+    * stegano
+    * many palette entries with same color => visually same pixels but, different color idx
+ * custom chunks
+ * crc
