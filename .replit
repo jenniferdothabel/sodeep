@@ -6,7 +6,7 @@ packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "streamlit run main.py --server.address=0.0.0.0 --server.port=5000"]
+run = ["streamlit", "run", "app.py", "--server.port", "5000"]
 
 [workflows]
 runButton = "Project"
@@ -18,78 +18,23 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Streamlit App"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Debug Test"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Message Extractor"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test Image Creator"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "API Server"
+args = "DEEP ANAL App"
 
 [[workflows.workflow]]
-name = "Streamlit App"
+name = "DEEP ANAL App"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "streamlit run main.py --server.address=0.0.0.0 --server.port=5001"
-waitForPort = 5001
-
-[[workflows.workflow]]
-name = "Debug Test"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run debug_analysis.py --server.address=0.0.0.0 --server.port=5002"
-waitForPort = 5002
-
-[[workflows.workflow]]
-name = "Message Extractor"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run extract_hidden.py --server.address=0.0.0.0 --server.port=5003"
-waitForPort = 5003
-
-[[workflows.workflow]]
-name = "Test Image Creator"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run create_test_images.py --server.address=0.0.0.0 --server.port=5004"
-waitForPort = 5004
-
-[[workflows.workflow]]
-name = "API Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python api_server.py"
-waitForPort = 5005
+args = "streamlit run main.py --server.address=0.0.0.0 --server.port=5000"
+waitForPort = 5000
 
 [workflows.workflow.metadata]
-outputType = "console"
+outputType = "webview"
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5001
 
 [[ports]]
 localPort = 5002
@@ -114,6 +59,10 @@ externalPort = 5000
 [[ports]]
 localPort = 8080
 externalPort = 8080
+
+[[ports]]
+localPort = 32915
+externalPort = 6000
 
 [[ports]]
 localPort = 36185
