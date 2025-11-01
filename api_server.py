@@ -901,7 +901,7 @@ def openapi_specification():
     })
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5005))
+    port = int(os.environ.get('PORT', 5006))
     print(f"Starting DEEP ANAL API server on port {port}")
     try:
         app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
