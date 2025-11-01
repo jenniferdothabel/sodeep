@@ -6,7 +6,7 @@ packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["python", "api_server.py"]
+run = ["bash", "-c", "PORT=5000 python api_server.py"]
 
 [workflows]
 runButton = "Project"
