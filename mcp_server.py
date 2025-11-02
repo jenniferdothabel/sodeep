@@ -53,10 +53,10 @@ def analyze_image_steganography(image_path: str) -> dict:
             "file_type": file_info.get("mime_type", "unknown"),
             "file_size": os.path.getsize(image_path),
             "likelihood": detection_result.likelihood,
-            "confidence_level": detection_result.confidence_level,
             "indicators": detection_result.indicators,
-            "suspected_techniques": detection_result.suspected_techniques,
+            "suspected_techniques": detection_result.techniques,
             "entropy": entropy,
+            "explanation": detection_result.explanation,
             "metadata_summary": {
                 "total_fields": len(metadata),
                 "has_exif": any("exif" in k.lower() for k in metadata.keys()),
@@ -79,19 +79,53 @@ def quick_scan_image(image_path: str) -> dict:
         image_path: Path to the image file to scan
         
     Returns:
-        Quick detection result with likelihood score and basic indicators
+        Quick detection result with likelihood score and basic indicators with values
     """
     try:
         if not os.path.exists(image_path):
             return {"error": f"File not found: {image_path}"}
         
+        # Safety check
+        if not is_safe_to_analyze(image_path):
+            return {"error": "File is not safe to analyze (encrypted, executable, or too large)"}
+        
         detection_result = analyze_image_for_steganography(image_path)
+        
+        # Sort indicators by contribution (weight * value) and get top 5
+        sorted_indicators = sorted(
+            detection_result.indicators.items(),
+            key=lambda x: abs(x[1].get("weight", 1.0) * x[1].get("value", 0)),
+            reverse=True
+        )[:5]
+        
+        top_indicators = []
+        for name, data in sorted_indicators:
+            value = data.get("value", 0)
+            weight = data.get("weight", 1.0)
+            contribution = abs(weight * value)
+            
+            # Add interpretive context
+            if contribution > 0.5:
+                severity = "high"
+            elif contribution > 0.2:
+                severity = "medium"
+            else:
+                severity = "low"
+            
+            top_indicators.append({
+                "name": name,
+                "value": value,
+                "weight": weight,
+                "contribution": contribution,
+                "severity": severity
+            })
         
         return {
             "likelihood": detection_result.likelihood,
-            "confidence_level": detection_result.confidence_level,
             "suspicious": detection_result.likelihood >= 0.3,
-            "key_indicators": detection_result.indicators[:5]  # Top 5 indicators
+            "key_indicators": top_indicators,
+            "explanation": detection_result.explanation,
+            "techniques": detection_result.techniques
         }
         
     except Exception as e:
