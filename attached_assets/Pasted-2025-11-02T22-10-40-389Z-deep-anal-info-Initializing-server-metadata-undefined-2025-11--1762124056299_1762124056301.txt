@@ -1,0 +1,151 @@
+2025-11-02T22:10:40.389Z [deep-anal] [info] Initializing server... { metadata: undefined }
+2025-11-02T22:10:40.416Z [deep-anal] [info] Using MCP server command: python with args and path: {
+  metadata: {
+    args: [ 'C:\\Users\\Jenja\\Downloads\\mcp_server.py', [length]: 1 ],
+    paths: [
+      'C:\\Program Files\\nodejs',
+      'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0\\bin\\x64',
+      'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0\\bin',
+      'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\bin',
+      'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\libnvvp',
+      'C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\java8path',
+      'C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath',
+      'c:\\Users\\Jenja\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin',
+      'C:\\WINDOWS\\system32',
+      'C:\\WINDOWS',
+      'C:\\WINDOWS\\System32\\Wbem',
+      'C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\',
+      'C:\\WINDOWS\\System32\\OpenSSH\\',
+      'C:\\Program Files\\dotnet\\',
+      'C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common',
+      'C:\\Program Files\\Git\\cmd',
+      'C:\\Users\\Jenja\\AppData\\Local\\Microsoft\\WindowsApps',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\Ollama',
+      'C:\\Users\\Jenja\\go\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\GitHubDesktop\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Muse Hub\\lib',
+      'C:\\Users\\Jenja\\AppData\\Local\\slack-cli\\bin',
+      'C:\\Users\\Jenja\\.deno\\bin',
+      'C:\\Program Files\\PuTTY\\',
+      'C:\\Program Files (x86)\\Gpg4win\\..\\GnuPG\\bin',
+      'C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\',
+      'C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\',
+      'C:\\Program Files\\gs\\gs10.04.0\\bin',
+      'C:\\Program Files\\FileBot\\',
+      'C:\\Program Files\\nodejs\\',
+      'C:\\Program Files\\NVIDIA Corporation\\NGCCLI\\amd64\\',
+      'C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR',
+      'C:\\WINDOWS\\system32',
+      'C:\\WINDOWS',
+      'C:\\WINDOWS\\System32\\Wbem',
+      'C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\',
+      'C:\\WINDOWS\\System32\\OpenSSH\\',
+      'C:\\Program Files\\Git LFS',
+      'C:\\Program Files\\Docker\\Docker\\resources\\bin',
+      'C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2025.3.1\\',
+      'C:\\Program Files\\Microsoft Network Monitor 3\\',
+      'C:\\Users\\Jenja\\AppData\\Local\\Microsoft\\WindowsApps',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\Microsoft VS Code\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\Ollama',
+      'C:\\Users\\Jenja\\go\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\GitHubDesktop\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Muse Hub\\lib',
+      'C:\\Users\\Jenja\\AppData\\Local\\slack-cli\\bin',
+      'C:\\Users\\Jenja\\.deno\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\',
+      'C:\\Users\\Jenja\\.dotnet\\tools',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\Windsurf\\bin',
+      'C:\\Users\\Jenja\\.lmstudio\\bin',
+      'C:\\Users\\Jenja\\AppData\\Roaming\\npm',
+      'C:\\Users\\Jenja\\.dotnet\\tools',
+      'C:\\Users\\Jenja\\AppData\\Local\\Microsoft\\WindowsApps',
+      'C:\\Users\\Jenja\\AppData\\Local\\Keybase\\',
+      [length]: 58
+    ]
+  }
+} %o
+2025-11-02T22:10:40.455Z [deep-anal] [info] Server started and connected successfully { metadata: undefined }
+Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
+2025-11-02T22:10:40.738Z [deep-anal] [info] Server transport closed { metadata: undefined }
+2025-11-02T22:10:40.738Z [deep-anal] [info] Client transport closed { metadata: undefined }
+2025-11-02T22:10:40.739Z [deep-anal] [info] Server transport closed unexpectedly, this is likely due to the process exiting early. If you are developing this MCP server you can add output to stderr (i.e. `console.error('...')` in JavaScript, `print('...', file=sys.stderr)` in python) and it will appear in this log. { metadata: undefined }
+2025-11-02T22:10:40.739Z [deep-anal] [error] Server disconnected. For troubleshooting guidance, please visit our [debugging documentation](https://modelcontextprotocol.io/docs/tools/debugging) { metadata: { context: 'connection', stack: undefined } }
+2025-11-02T22:10:40.740Z [deep-anal] [info] Client transport closed { metadata: undefined }
+2025-11-02T22:48:12.016Z [deep-anal] [info] Client transport closed { metadata: undefined }
+2025-11-02T22:48:12.016Z [deep-anal] [info] Shutting down server... { metadata: undefined }
+2025-11-02T22:48:12.017Z [deep-anal] [info] Initializing server... { metadata: undefined }
+2025-11-02T22:48:12.040Z [deep-anal] [info] Using MCP server command: python with args and path: {
+  metadata: {
+    args: [ 'C:\\Users\\Jenja\\Downloads\\mcp_server.py', [length]: 1 ],
+    paths: [
+      'C:\\Program Files\\nodejs',
+      'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0\\bin\\x64',
+      'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.0\\bin',
+      'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\bin',
+      'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8\\libnvvp',
+      'C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\java8path',
+      'C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath',
+      'c:\\Users\\Jenja\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin',
+      'C:\\WINDOWS\\system32',
+      'C:\\WINDOWS',
+      'C:\\WINDOWS\\System32\\Wbem',
+      'C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\',
+      'C:\\WINDOWS\\System32\\OpenSSH\\',
+      'C:\\Program Files\\dotnet\\',
+      'C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common',
+      'C:\\Program Files\\Git\\cmd',
+      'C:\\Users\\Jenja\\AppData\\Local\\Microsoft\\WindowsApps',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\Ollama',
+      'C:\\Users\\Jenja\\go\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\GitHubDesktop\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Muse Hub\\lib',
+      'C:\\Users\\Jenja\\AppData\\Local\\slack-cli\\bin',
+      'C:\\Users\\Jenja\\.deno\\bin',
+      'C:\\Program Files\\PuTTY\\',
+      'C:\\Program Files (x86)\\Gpg4win\\..\\GnuPG\\bin',
+      'C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\',
+      'C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\',
+      'C:\\Program Files\\gs\\gs10.04.0\\bin',
+      'C:\\Program Files\\FileBot\\',
+      'C:\\Program Files\\nodejs\\',
+      'C:\\Program Files\\NVIDIA Corporation\\NGCCLI\\amd64\\',
+      'C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR',
+      'C:\\WINDOWS\\system32',
+      'C:\\WINDOWS',
+      'C:\\WINDOWS\\System32\\Wbem',
+      'C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\',
+      'C:\\WINDOWS\\System32\\OpenSSH\\',
+      'C:\\Program Files\\Git LFS',
+      'C:\\Program Files\\Docker\\Docker\\resources\\bin',
+      'C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2025.3.1\\',
+      'C:\\Program Files\\Microsoft Network Monitor 3\\',
+      'C:\\Users\\Jenja\\AppData\\Local\\Microsoft\\WindowsApps',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\Microsoft VS Code\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\Ollama',
+      'C:\\Users\\Jenja\\go\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\GitHubDesktop\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Muse Hub\\lib',
+      'C:\\Users\\Jenja\\AppData\\Local\\slack-cli\\bin',
+      'C:\\Users\\Jenja\\.deno\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\',
+      'C:\\Users\\Jenja\\.dotnet\\tools',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin',
+      'C:\\Users\\Jenja\\AppData\\Local\\Programs\\Windsurf\\bin',
+      'C:\\Users\\Jenja\\.lmstudio\\bin',
+      'C:\\Users\\Jenja\\AppData\\Roaming\\npm',
+      'C:\\Users\\Jenja\\.dotnet\\tools',
+      'C:\\Users\\Jenja\\AppData\\Local\\Microsoft\\WindowsApps',
+      'C:\\Users\\Jenja\\AppData\\Local\\Keybase\\',
+      [length]: 58
+    ]
+  }
+} %o
+2025-11-02T22:48:12.078Z [deep-anal] [info] Server started and connected successfully { metadata: undefined }
+2025-11-02T22:48:12.111Z [deep-anal] [info] Message from client: {"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"claude-ai","version":"0.1.0"}},"jsonrpc":"2.0","id":0} { metadata: undefined }
+Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
+2025-11-02T22:48:12.421Z [deep-anal] [info] Server transport closed { metadata: undefined }
+2025-11-02T22:48:12.421Z [deep-anal] [info] Client transport closed { metadata: undefined }
+2025-11-02T22:48:12.422Z [deep-anal] [info] Server transport closed unexpectedly, this is likely due to the process exiting early. If you are developing this MCP server you can add output to stderr (i.e. `console.error('...')` in JavaScript, `print('...', file=sys.stderr)` in python) and it will appear in this log. { metadata: undefined }
+2025-11-02T22:48:12.422Z [deep-anal] [error] Server disconnected. For troubleshooting guidance, please visit our [debugging documentation](https://modelcontextprotocol.io/docs/tools/debugging) { metadata: { context: 'connection', stack: undefined } }
+2025-11-02T22:48:12.422Z [deep-anal] [info] Client transport closed { metadata: undefined }
