@@ -23,4 +23,5 @@ dependencies = [
     "pytesseract>=0.3.13",
     "matplotlib>=3.10.6",
     "flask-cors>=6.0.1",
+    "mcp>=1.20.0",
 ]
