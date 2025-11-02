@@ -7,6 +7,7 @@ import os
 import tempfile
 import base64
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from pathlib import Path
 import json
@@ -23,6 +24,9 @@ from utils.ai_assistant import SteganographyAssistant
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Enable CORS for ChatGPT and other external services
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Initialize AI assistant
 ai_assistant = SteganographyAssistant()

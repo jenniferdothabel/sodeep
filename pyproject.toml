@@ -22,4 +22,5 @@ dependencies = [
     "moviepy>=2.2.1",
     "pytesseract>=0.3.13",
     "matplotlib>=3.10.6",
+    "flask-cors>=6.0.1",
 ]
