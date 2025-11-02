@@ -120,16 +120,26 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Package Management**: UV for Python dependency resolution
 
 ### Application Variants
-- **Main Application** (`main.py`): Full-featured analysis interface (Port 5001)
-- **Minimal Version** (`minimal.py`): Lightweight testing interface (Port 5000)
-- **Debug Interface** (`debug_analysis.py`): Development debugging tools (Port 5002)
+- **Main Application** (`main.py`): Full-featured analysis interface (Port 5000)
+- **API Server** (`api_server.py`): REST API for ChatGPT integration (Port 5005)
+- **MCP Server** (`mcp_server.py`): Model Context Protocol server for Claude Desktop
+- **Minimal Version** (`minimal.py`): Lightweight testing interface
+- **Debug Interface** (`debug_analysis.py`): Development debugging tools
 
 ### Workflow Management
-- **Parallel Execution**: Main app and debug interface run simultaneously
+- **Parallel Execution**: Main app and API server run simultaneously
 - **Health Monitoring**: Port-based service availability checking
 - **Graceful Degradation**: Database-optional operation for reliability
 
+### Integration Capabilities
+- **ChatGPT Actions**: REST API with OpenAPI spec for custom GPT integration
+- **Claude Desktop MCP**: Direct tool access via Model Context Protocol
+- **CORS Enabled**: External service access with proper cross-origin headers
+- **Webhook Support**: Ready for deployment as public API endpoint
+
 ## Changelog
+- November 2, 2025: **Added MCP Server for Claude** - Created Model Context Protocol server (`mcp_server.py`) enabling Claude Desktop to directly access steganography analysis tools. Features 5 MCP tools: comprehensive analysis, quick scan with ranked indicators, content extraction, entropy analysis, and string extraction. Includes setup documentation in `MCP_SETUP.md`.
+- November 2, 2025: **Enhanced API Server with CORS** - Added CORS support to Flask API server for ChatGPT and external service integration. Deployment configuration updated to run API server on port 5000 for production use.
 - October 27, 2025: **Removed all file type restrictions** - application now accepts ANY file type with intelligent file identification using magic numbers. Added comprehensive File Identifier module using libmagic for MIME type detection, signature extraction, and safety assessment. Enhanced UI with file type display, magic bytes analysis, and security warnings.
 - October 27, 2025: Added PGP/GPG workflow analysis module for detecting encrypted messages, public/private keys, and signatures in extracted content. Features automatic risk assessment, key ID extraction, and forensic investigation recommendations.
 - October 24, 2025: Added 5 advanced visualization modules:
