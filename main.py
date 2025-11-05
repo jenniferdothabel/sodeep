@@ -2322,13 +2322,11 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                     st.error(f"Channel analysis failed: {str(e)}")
         else:
             if file_type in ['heic', 'heif'] and not HEIF_AVAILABLE:
-                st.error("🖼️ HEIC/HEIF format not supported - pillow-heif library not available")
-                st.info("💡 Convert your HEIC file to PNG or JPEG format for analysis")
+                st.error("🖼️ HEIC/HEIF image format not supported - pillow-heif library not available")
+                st.info("💡 Convert your HEIC file to PNG or JPEG format for image-specific visualizations")
             else:
-                base_list = "PNG, JPEG, TIFF, BMP, WEBP, GIF"
-                heif_list = ", HEIC/HEIF" if HEIF_AVAILABLE else ""
-                st.error(f"⚠️ Could not process this image format. Supported formats: {base_list}{heif_list}")
-                st.info("💡 Try converting to PNG or JPEG if analysis fails.")
+                st.warning(f"⚠️ Some image-specific visualizations may not be available for this file type.")
+                st.info("💡 All files are analyzed for steganography - image visualizations require standard image formats.")
     
     except Exception as e:
         st.error(f"Critical error: {str(e)}")
@@ -2342,22 +2340,23 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
 
 else:
     # Instructions
-    st.info("Upload a PNG or JPEG image to begin steganography analysis")
+    st.info("Upload ANY file type to begin steganography analysis")
     
     st.markdown("""
     ### What is DEEP ANAL?
     
-    DEEP ANAL is an advanced steganography analysis tool that can detect hidden data in images using:
+    DEEP ANAL is an advanced steganography analysis tool that can detect hidden data in ANY file type using:
     
     - **LSB Analysis** - Examines least significant bits for patterns
     - **Statistical Tests** - Chi-square and entropy analysis  
     - **Histogram Analysis** - Detects frequency anomalies
     - **Metadata Inspection** - Checks for hidden information in headers
     - **String Extraction** - Finds readable text within binary data
+    - **File Identification** - Uses magic bytes to identify true file types
     
     ### How to Use
     
-    1. Upload a PNG or JPEG image
+    1. Upload ANY file (images, videos, documents, executables, archives, etc.)
     2. Wait for analysis to complete
     3. Review detection probability and detailed results
     4. Explore visualizations and extracted data
