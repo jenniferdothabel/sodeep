@@ -932,8 +932,8 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS":
         """
         <p style='color: #00ff00; font-family: "Share Tech Mono", monospace;'>
         >>> INITIALIZING DEEP SCAN PROTOCOL...<br>
-        >>> SUPPORTED TARGET FORMATS: PNG | JPEG | TIFF | BMP | WEBP | HEIC | GIF<br>
-        >>> VIDEO FORMATS: MP4 | AVI | MOV | WMV | FLV | MKV | WEBM<br>
+        >>> UNIVERSAL FILE SUPPORT: ALL FILE TYPES ACCEPTED<br>
+        >>> IMAGES | VIDEOS | DOCUMENTS | ARCHIVES | EXECUTABLES | RAW DATA<br>
         >>> DRAG TARGET FILE TO INITIATE ANALYSIS SEQUENCE
         </p>
         """,
@@ -986,19 +986,15 @@ else:
         
         try:
             with zipfile.ZipFile(io.BytesIO(uploaded_zip.getvalue())) as zip_ref:
-                # Extract image files from ZIP
-                image_files = []
-                supported_extensions = ('.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.webp', '.heic', '.heif', '.gif',
-                                       '.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.webm',
-                                       '.PNG', '.JPG', '.JPEG', '.TIFF', '.TIF', '.BMP', '.WEBP', '.HEIC', '.HEIF', '.GIF',
-                                       '.MP4', '.AVI', '.MOV', '.WMV', '.FLV', '.MKV', '.WEBM')
+                # Extract ALL files from ZIP (universal file support)
+                extracted_files = []
                 
                 for file_info in zip_ref.filelist:
-                    if file_info.filename.endswith(supported_extensions) and not file_info.is_dir():
+                    if not file_info.is_dir():
                         try:
                             file_data = zip_ref.read(file_info.filename)
                             # Create a file-like object that mimics uploaded_file
-                            class ZipImageFile:
+                            class ZipExtractedFile:
                                 def __init__(self, name, data):
                                     self.name = name
                                     self.data = data
@@ -1009,15 +1005,15 @@ else:
                                 def getvalue(self):
                                     return self.data
                             
-                            image_files.append(ZipImageFile(file_info.filename, file_data))
+                            extracted_files.append(ZipExtractedFile(file_info.filename, file_data))
                         except Exception as e:
                             st.warning(f"Failed to extract {file_info.filename}: {str(e)}")
                 
-                if image_files:
-                    st.success(f"📦 Extracted {len(image_files)} images from ZIP archive")
-                    uploaded_files = image_files  # Use extracted files for batch processing
+                if extracted_files:
+                    st.success(f"📦 Extracted {len(extracted_files)} files from ZIP archive (ALL file types supported)")
+                    uploaded_files = extracted_files  # Use extracted files for batch processing
                 else:
-                    st.error("No supported image files found in ZIP archive")
+                    st.error("No files found in ZIP archive")
                     uploaded_files = None
                     
         except zipfile.BadZipFile:
