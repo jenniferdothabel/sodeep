@@ -786,3 +786,130 @@ def determine_potential_techniques(result):
         techniques.append("Unknown Steganographic Technique")
     
     return techniques
+
+def analyze_binary_file_for_steganography(file_path):
+    """
+    Analyze a non-image binary file for signs of steganography.
+    Uses entropy analysis, string patterns, and other binary indicators.
+    
+    Args:
+        file_path: Path to the binary file
+    
+    Returns:
+        DetectionResult object with likelihood and explanations
+    """
+    result = DetectionResult()
+    
+    try:
+        # Read the file as binary
+        with open(file_path, 'rb') as f:
+            data = f.read()
+        
+        if len(data) == 0:
+            result.likelihood = 0.0
+            result.explanation = "Empty file - no data to analyze"
+            return result
+        
+        # 1. Entropy analysis - high entropy suggests encryption/compression
+        byte_counts = np.bincount(np.frombuffer(data, dtype=np.uint8), minlength=256)
+        probabilities = byte_counts[byte_counts > 0] / len(data)
+        entropy = -np.sum(probabilities * np.log2(probabilities))
+        
+        # Normalized entropy (0-8 bits) - very high or very low is suspicious
+        normalized_entropy = entropy / 8.0
+        entropy_likelihood = 0.0
+        if 0.95 <= normalized_entropy <= 1.0:
+            # Very high entropy - likely encrypted/compressed
+            entropy_likelihood = 0.8
+        elif 0.85 <= normalized_entropy < 0.95:
+            # High entropy - moderately suspicious
+            entropy_likelihood = 0.6
+        elif normalized_entropy < 0.3:
+            # Very low entropy - unusual for real data
+            entropy_likelihood = 0.4
+        
+        result.add_indicator("Binary Entropy", entropy_likelihood, weight=1.5)
+        
+        # 2. File size analysis - check for unusual padding
+        file_size = len(data)
+        size_likelihood = 0.0
+        if file_size % 16 == 0 and file_size > 1024:
+            # Perfect block alignment might indicate crypto
+            size_likelihood = 0.3
+        result.add_indicator("Size Analysis", size_likelihood, weight=0.5)
+        
+        # 3. Byte frequency distribution
+        byte_array = np.frombuffer(data, dtype=np.uint8)
+        unique_bytes = len(np.unique(byte_array))
+        byte_diversity = unique_bytes / 256.0
+        
+        diversity_likelihood = 0.0
+        if byte_diversity > 0.9:
+            # Very high byte diversity suggests encrypted data
+            diversity_likelihood = 0.7
+        elif byte_diversity < 0.1:
+            # Very low diversity - unusual
+            diversity_likelihood = 0.5
+        
+        result.add_indicator("Byte Diversity", diversity_likelihood, weight=1.0)
+        
+        # 4. Pattern analysis - look for repeated sequences
+        pattern_likelihood = 0.0
+        if len(data) > 100:
+            # Check for repeating patterns (simple check)
+            chunks = [data[i:i+16] for i in range(0, min(len(data), 1000), 16)]
+            unique_chunks = len(set(chunks))
+            repetition_rate = 1.0 - (unique_chunks / len(chunks))
+            
+            if repetition_rate < 0.1:
+                # Very few repeats - possibly encrypted
+                pattern_likelihood = 0.6
+            elif repetition_rate > 0.5:
+                # Many repeats - possibly steganographic container
+                pattern_likelihood = 0.4
+        
+        result.add_indicator("Pattern Analysis", pattern_likelihood, weight=1.2)
+        
+        # 5. Null byte analysis
+        null_count = data.count(b'\x00')
+        null_ratio = null_count / len(data)
+        null_likelihood = 0.0
+        if null_ratio > 0.3:
+            # High null content might indicate padding/hiding space
+            null_likelihood = 0.5
+        
+        result.add_indicator("Null Byte Analysis", null_likelihood, weight=0.8)
+        
+        # Calculate overall likelihood
+        result.calculate_overall_likelihood()
+        
+        # Generate explanation for binary files
+        if result.likelihood < 0.2:
+            result.explanation = "Binary file appears normal with expected statistical properties."
+        elif result.likelihood < 0.4:
+            result.explanation = "Minor irregularities detected in binary structure. Could be normal variation."
+        elif result.likelihood < 0.6:
+            result.explanation = "Moderate indicators of potential hidden data or encryption in binary file."
+        elif result.likelihood < 0.8:
+            result.explanation = "Strong indicators suggest this file may contain hidden or encrypted data."
+        else:
+            result.explanation = "Very high likelihood of steganography or encryption detected in binary structure."
+        
+        # Add techniques for binary files
+        techniques = []
+        if entropy_likelihood > 0.6:
+            techniques.append("Encryption/Compression")
+        if diversity_likelihood > 0.6:
+            techniques.append("High-Entropy Steganography")
+        if pattern_likelihood > 0.5:
+            techniques.append("Pattern-Based Hiding")
+        if null_likelihood > 0.4:
+            techniques.append("Null Byte Padding")
+        
+        result.techniques = techniques if techniques else ["Binary Data Analysis"]
+        
+    except Exception as e:
+        result.explanation = f"Error analyzing binary file: {str(e)}"
+        result.likelihood = 0.0
+    
+    return result

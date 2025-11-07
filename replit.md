@@ -138,6 +138,7 @@ DEEP ANAL is an advanced steganography analysis platform built with Streamlit th
 - **Webhook Support**: Ready for deployment as public API endpoint
 
 ## Changelog
+- November 7, 2025: **Added binary file steganography analysis** - Created dedicated analysis engine for non-image files using entropy, byte diversity, pattern analysis, and null byte detection. Binary files (.bin, .exe, .dat, etc.) now receive meaningful steganography detection results instead of zeros. Added comprehensive visualization and detection indicators for all file types.
 - November 5, 2025: **Fixed ZIP archive extraction** - Removed file type filtering from ZIP batch processing. All file types are now extracted and analyzed from ZIP archives, not just images and videos. Updated UI to reflect universal file support.
 - November 2, 2025: **Added MCP Server for Claude** - Created Model Context Protocol server (`mcp_server.py`) enabling Claude Desktop to directly access steganography analysis tools. Features 5 MCP tools: comprehensive analysis, quick scan with ranked indicators, content extraction, entropy analysis, and string extraction. Includes setup documentation in `MCP_SETUP.md`.
 - November 2, 2025: **Enhanced API Server with CORS** - Added CORS support to Flask API server for ChatGPT and external service integration. Deployment configuration updated to run API server on port 5000 for production use.

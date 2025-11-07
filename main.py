@@ -31,7 +31,7 @@ from utils.visualizations import (
 from utils.database import (
     save_analysis, get_recent_analyses, get_analysis_by_id, DB_AVAILABLE
 )
-from utils.stego_detector import analyze_image_for_steganography
+from utils.stego_detector import analyze_image_for_steganography, analyze_binary_file_for_steganography
 from utils.stego_decoder import (
     brute_force_decode, decode_lsb, decode_multi_bit_lsb, 
     try_steghide_extract, extract_metadata_hidden_data, extract_with_xor_analysis
@@ -2321,12 +2321,103 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                 except Exception as e:
                     st.error(f"Channel analysis failed: {str(e)}")
         else:
-            if file_type in ['heic', 'heif'] and not HEIF_AVAILABLE:
-                st.error("🖼️ HEIC/HEIF image format not supported - pillow-heif library not available")
-                st.info("💡 Convert your HEIC file to PNG or JPEG format for image-specific visualizations")
-            else:
-                st.warning(f"⚠️ Some image-specific visualizations may not be available for this file type.")
-                st.info("💡 All files are analyzed for steganography - image visualizations require standard image formats.")
+            # Non-image file - use binary file analysis
+            st.info("📁 Non-image file detected. Running binary steganography analysis...")
+            
+            try:
+                with st.spinner("Analyzing binary file for hidden data..."):
+                    detection_result = analyze_binary_file_for_steganography(temp_path)
+                likelihood = detection_result.likelihood
+                likelihood_percentage = f"{likelihood*100:.1f}%"
+                color = "#00ff00" if likelihood < 0.3 else "#ffff00" if likelihood < 0.6 else "#ff0000"
+            except Exception as e:
+                st.error(f"Binary analysis error: {str(e)}")
+                likelihood = 0
+                likelihood_percentage = "0.0%"
+                color = "#00ff00"
+                detection_result = None
+            
+            # Save to database
+            if DB_AVAILABLE:
+                try:
+                    metadata_json = json.dumps(metadata)
+                    save_analysis(uploaded_file.name, file_size, file_type, entropy_value, metadata_json)
+                except Exception as e:
+                    st.warning(f"Database save failed: {str(e)}")
+        
+            # Results display for binary files
+            st.success(f"✓ Binary Analysis Complete: {uploaded_file.name}")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("File Size", f"{file_size} bytes")
+            with col2:
+                st.metric("Type", file_type.upper() if file_type else "BIN")
+            with col3:
+                st.metric("Entropy", f"{entropy_value:.4f}")
+            with col4:
+                st.metric("Stego Detection", likelihood_percentage, delta=None)
+            
+            # Show detection results
+            if detection_result:
+                st.markdown("---")
+                st.subheader("🔍 Binary Steganography Detection")
+                
+                st.markdown(f"""
+                <div style='background-color: rgba(0,255,255,0.1); padding: 20px; border-radius: 10px; border-left: 5px solid {color}'>
+                    <h3 style='color: {color};'>Detection Likelihood: {likelihood_percentage}</h3>
+                    <p>{detection_result.explanation}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Show indicators
+                st.markdown("### 📊 Detection Indicators")
+                for name, details in detection_result.indicators.items():
+                    indicator_color = "#00ff00" if details['value'] < 0.3 else "#ffff00" if details['value'] < 0.6 else "#ff0000"
+                    st.markdown(f"**{name}**: <span style='color:{indicator_color}'>{details['value']*100:.1f}%</span> (weight: {details['weight']})", unsafe_allow_html=True)
+                
+                if detection_result.techniques:
+                    st.markdown("### 🔬 Suspected Techniques")
+                    for technique in detection_result.techniques:
+                        st.write(f"• {technique}")
+            
+            # Show basic visualizations that work for all files
+            st.markdown("---")
+            st.subheader("📊 Binary File Visualizations")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**Entropy Analysis**")
+                entropy_plot = create_entropy_plot(entropy_value)
+                st.plotly_chart(entropy_plot, use_container_width=True)
+            
+            with col2:
+                st.write("**Byte Frequency**")
+                bytes_values, frequencies = get_byte_frequency(temp_path)
+                freq_plot = create_byte_frequency_plot(bytes_values, frequencies)
+                st.plotly_chart(freq_plot, use_container_width=True)
+            
+            # Metadata and strings
+            st.markdown("---")
+            st.subheader("📄 File Metadata & Strings")
+            
+            with st.expander("📋 Metadata", expanded=False):
+                if metadata:
+                    for key, value in metadata.items():
+                        st.write(f"**{key}**: {value}")
+                else:
+                    st.write("No metadata available")
+            
+            with st.expander("🔤 Extracted Strings", expanded=False):
+                strings = extract_strings(temp_path, min_length=4)
+                if strings:
+                    st.text_area("Strings found:", "\n".join(strings[:100]), height=300)
+                    if len(strings) > 100:
+                        st.info(f"Showing first 100 of {len(strings)} strings found")
+                else:
+                    st.write("No readable strings found")
+            
+            st.warning("⚠️ Note: Image-specific visualizations (bitplanes, RGB analysis, etc.) are not available for non-image files.")
     
     except Exception as e:
         st.error(f"Critical error: {str(e)}")
