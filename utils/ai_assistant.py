@@ -5,17 +5,27 @@ Provides intelligent analysis and investigation guidance using OpenAI's GPT mode
 
 import os
 import json
+from typing import Generator
 from openai import OpenAI
 
 # Using GPT-4o as requested by the user
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+_api_key = os.environ.get("OPENAI_API_KEY")
+client = OpenAI(api_key=_api_key) if _api_key else None
 
 class SteganographyAssistant:
     """AI assistant for steganography analysis and investigation guidance."""
     
-    def __init__(self):
-        self.model = "gpt-4o"  # GPT-4o (text + vision)
-        
+    def __init__(self, model=None):
+        if client is None:
+            api_key = os.environ.get('OPENAI_API_KEY')
+            if not api_key:
+                raise RuntimeError('OpenAI API key not configured.')
+            self.client = OpenAI(api_key=api_key)
+        else:
+            self.client = client
+
+        self.model = model or os.environ.get('STEGO_AI_MODEL', 'gpt-4o')  # GPT-4o (text + vision)
+
     def analyze_detection_results(self, detection_result, file_metadata, extracted_content=None):
         """
         Analyze steganography detection results and provide expert insights.
@@ -65,7 +75,7 @@ Please provide a professional analysis in JSON format with these sections:
 
 Be concise but thorough. Focus on actionable insights."""
 
-            response = client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}
@@ -127,7 +137,7 @@ Analyze this extracted content and provide insights in JSON format:
 
 Be professional and focus on forensic analysis."""
 
-            response = client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}
@@ -145,6 +155,33 @@ Be professional and focus on forensic analysis."""
                 "next_steps": ["Save content for manual analysis", "Try different extraction methods"]
             }
     
+    def stream_chat_response(self, messages, temperature=0.2) -> Generator[str, None, None]:
+        """Stream a conversational response for interactive chats."""
+        if not messages:
+            raise ValueError('Chat messages are required for a response.')
+
+        stream = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=temperature,
+            stream=True,
+        )
+
+        for chunk in stream:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            if not delta:
+                continue
+            content = getattr(delta, 'content', None)
+            if isinstance(content, list):
+                for part in content:
+                    text = part.get('text') if isinstance(part, dict) else str(part)
+                    if text:
+                        yield text
+            elif content:
+                yield content
+
     def generate_investigation_report(self, filename, detection_results, extracted_contents, metadata):
         """
         Generate a comprehensive investigation report.
@@ -182,7 +219,7 @@ Create a structured report with:
 
 Use professional forensics language but keep it accessible. Focus on facts and actionable insights."""
 
-            response = client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}]
             )

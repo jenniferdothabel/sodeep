@@ -1,5 +1,6 @@
 import subprocess
 import os
+import shutil
 import tempfile
 from pathlib import Path
 import numpy as np
@@ -132,28 +133,55 @@ def run_zsteg(file_path):
             header = f.read(8)
             if not header.startswith(b'\x89PNG\r\n\x1a\n'):
                 return "ZSTEG only works with PNG files. File format not supported."
-        
+
         # Set up environment with gem bin path
         env = os.environ.copy()
-        gem_bin_path = "/home/runner/workspace/.local/share/gem/ruby/3.1.0/bin"
-        
-        # Add gem bin to PATH if not already there
-        if 'PATH' in env:
-            if gem_bin_path not in env['PATH']:
-                env['PATH'] = f"{env['PATH']}:{gem_bin_path}"
-        else:
-            env['PATH'] = gem_bin_path
-        
-        # Try to run zsteg with full path first
-        zsteg_cmd = f"{gem_bin_path}/zsteg"
-        
-        # Check if zsteg exists
-        if not os.path.exists(zsteg_cmd):
-            return f"ZSTEG not found at {zsteg_cmd}. Please install with: gem install zsteg"
-        
+
+        # Collect potential gem bin directories
+        gem_bin_candidates = []
+
+        gem_home = env.get('GEM_HOME')
+        if gem_home:
+            gem_bin_candidates.append(Path(gem_home) / 'bin')
+
+        # Common locations for locally installed gems
+        candidate_roots = [
+            Path.home() / '.local/share/gem',
+            Path.home() / '.gem',
+            Path('/usr/local/lib/ruby/gems'),
+            Path('/usr/lib/ruby/gems'),
+            Path('/usr/local/bundle'),
+        ]
+
+        for root in candidate_roots:
+            if root.exists():
+                for bin_dir in root.glob('**/bin'):
+                    gem_bin_candidates.append(bin_dir)
+
+        # Append discovered gem bin directories to PATH for this subprocess
+        path_parts = env.get('PATH', '').split(os.pathsep) if env.get('PATH') else []
+        path_parts = [p for p in path_parts if p]
+        for bin_dir in gem_bin_candidates:
+            bin_str = str(bin_dir)
+            if bin_dir.exists() and bin_str not in path_parts:
+                path_parts.append(bin_str)
+
+        if path_parts:
+            env['PATH'] = os.pathsep.join(path_parts)
+
+        # Discover zsteg executable
+        zsteg_cmd = shutil.which('zsteg', path=env.get('PATH'))
+        if not zsteg_cmd:
+            searched_paths = [str(p) for p in gem_bin_candidates if Path(p).exists()]
+            searched = ', '.join(searched_paths)
+            return (
+                "ZSTEG executable not found. Please install with `gem install zsteg` and ensure it is in your PATH.\n"
+                f"Searched: {searched or 'system PATH'}"
+            )
+
         # Run zsteg with various analysis options
-        cmd = [zsteg_cmd, "-a", str(file_path)]
-        
+        cmd = [zsteg_cmd, '-a', str(file_path)]
+
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -161,16 +189,16 @@ def run_zsteg(file_path):
             timeout=30,
             env=env
         )
-        
+
         output = result.stdout if result.stdout else result.stderr
-        
-        if not output or output.strip() == "":
+
+        if not output or output.strip() == '':
             return "No output from ZSTEG analysis"
-        
+
         # Clean up output and filter meaningful results
         lines = output.split('\n')
         meaningful_lines = []
-        
+
         for line in lines:
             line = line.strip()
             # Skip empty lines and common noise
@@ -181,18 +209,18 @@ def run_zsteg(file_path):
                 continue
             # Skip common warnings and non-findings
             if any(skip in line.lower() for skip in [
-                'system temporary path', 'world-writable', 'nothing', 
+                'system temporary path', 'world-writable', 'nothing',
                 'possible image block size', 'downscaling may be necessary',
                 '[=] nothing'
             ]):
                 continue
             meaningful_lines.append(line)
-        
+
         if meaningful_lines:
-            return "\n".join(meaningful_lines)
+            return '\n'.join(meaningful_lines)
         else:
             return "No hidden data detected by ZSTEG analysis"
-        
+
     except subprocess.TimeoutExpired:
         return "ZSTEG analysis timed out after 30 seconds"
     except Exception as e:

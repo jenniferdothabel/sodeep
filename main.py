@@ -1891,7 +1891,106 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                             st.write("1. Extract hidden content")
                             st.write("2. Analyze extracted data")
                             st.write("3. Check file provenance")
-                        
+
+                    st.markdown("---")
+                    st.markdown("#### 🗨️ Real-time Forensic Chat")
+
+                    fallback_name = 'uploaded file'
+                    try:
+                        fallback_name = Path(temp_path).name  # type: ignore[name-defined]
+                    except Exception:
+                        pass
+                    file_name = getattr(uploaded_file, 'name', fallback_name) or fallback_name
+                    size_hint = ''
+                    if isinstance(metadata, dict):
+                        size_hint = metadata.get('File Size') or metadata.get('FileType') or metadata.get('MIME Type') or ''
+                    if size_hint:
+                        size_hint = str(size_hint)
+
+                    indicator_summary = {}
+                    if detection_result and hasattr(detection_result, 'indicators'):
+                        try:
+                            indicator_summary = {}
+                            for k, indicators_val in list(detection_result.indicators.items())[:6]:
+                                if isinstance(indicators_val, (int, float)):
+                                    indicator_summary[k] = float(indicators_val)
+                                elif hasattr(indicators_val, 'item'):
+                                    try:
+                                        indicator_summary[k] = float(indicators_val.item())
+                                    except Exception:
+                                        indicator_summary[k] = str(indicators_val)
+                                else:
+                                    indicator_summary[k] = str(indicators_val)
+                        except Exception:
+                            indicator_summary = str(getattr(detection_result, 'indicators', {}))
+
+                    if isinstance(indicator_summary, dict):
+                        try:
+                            indicator_summary_text = json.dumps(indicator_summary, default=str)
+                        except TypeError:
+                            indicator_summary_text = str(indicator_summary)
+                    else:
+                        indicator_summary_text = str(indicator_summary)
+
+                    metadata_summary = {}
+                    if isinstance(metadata, dict):
+                        for key in list(metadata.keys())[:6]:
+                            value = metadata[key]
+                            if isinstance(value, (int, float)):
+                                metadata_summary[key] = value
+                            else:
+                                metadata_summary[key] = str(value)
+
+                    try:
+                        metadata_summary_text = json.dumps(metadata_summary, default=str) if metadata_summary else "{}"
+                    except TypeError:
+                        metadata_summary_text = str(metadata_summary)
+
+                    chat_context_id = f"{file_name}|{size_hint}|{likelihood:.3f}"
+                    if st.session_state.get('ai_chat_context_id') != chat_context_id:
+                        system_prompt = (
+                            "You are a digital forensics assistant helping investigate a potential steganography case. "
+                            f"File under review: {file_name}. "
+                            f"Detection likelihood: {likelihood:.0%}. "
+                            f"Indicators: {indicator_summary_text}. "
+                            f"Key metadata: {metadata_summary_text}. "
+                            "Provide concise, actionable responses focused on forensic workflows."
+                        )
+                        st.session_state['ai_chat_context_id'] = chat_context_id
+                        st.session_state['ai_chat_history'] = [{"role": "system", "content": system_prompt}]
+                        st.session_state['ai_chat_messages'] = []
+
+                    chat_messages = st.session_state.get('ai_chat_messages', [])
+                    for message in chat_messages:
+                        role = message.get('role', 'assistant')
+                        if role == 'system':
+                            continue
+                        with st.chat_message('user' if role == 'user' else 'assistant'):
+                            st.markdown(message.get('content', ''))
+
+                    user_question = st.chat_input("Ask the AI assistant about this analysis")
+                    if user_question:
+                        st.session_state['ai_chat_messages'].append({"role": "user", "content": user_question})
+                        st.session_state['ai_chat_history'].append({"role": "user", "content": user_question})
+
+                        with st.chat_message('user'):
+                            st.markdown(user_question)
+
+                        with st.chat_message('assistant'):
+                            response_placeholder = st.empty()
+                            accumulated_response = ""
+                            try:
+                                for chunk in ai_assistant.stream_chat_response(st.session_state['ai_chat_history']):
+                                    if not chunk:
+                                        continue
+                                    accumulated_response += chunk
+                                    response_placeholder.markdown(accumulated_response + "▌")
+                                response_placeholder.markdown(accumulated_response)
+                                st.session_state['ai_chat_messages'].append({"role": "assistant", "content": accumulated_response})
+                                st.session_state['ai_chat_history'].append({"role": "assistant", "content": accumulated_response})
+                            except Exception as chat_error:
+                                response_placeholder.error(f"Chat failed: {chat_error}")
+
                 except ImportError:
                     st.warning("🤖 AI Assistant requires OpenAI API access. Analysis features limited.")
                 except Exception as e:
