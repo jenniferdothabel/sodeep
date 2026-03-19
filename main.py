@@ -1791,7 +1791,10 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                     elif likelihood >= 0.2:
                         st.markdown("---")
                         st.info("💡 Low-moderate steganography likelihood detected. You can still try extraction methods using the Message Extractor tool.")
-                
+
+                else:
+                    st.write("No detailed detection data available")
+
                 # Add AI Assistant Analysis
                 st.markdown("---")
                 st.subheader("🤖 AI Investigation Assistant")
@@ -1991,10 +1994,7 @@ if upload_mode == "⚡ SINGLE TARGET ANALYSIS" and uploaded_file:
                     st.warning("🤖 AI Assistant requires OpenAI API access. Analysis features limited.")
                 except Exception as e:
                     st.error(f"AI Assistant initialization failed: {str(e)}")
-                        
-                else:
-                    st.write("No detailed detection data available")
-                
+
                 # Direct download buttons - no preview step
                 st.markdown("---")
                 st.subheader("📥 Download Analysis Reports")
