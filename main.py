@@ -51,8 +51,11 @@ APP_VERSION = "2.1.0"  # Universal file support update
 
 def load_css():
     """Load cyberpunk CSS styling"""
-    with open('.streamlit/style.css') as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    try:
+        with open('.streamlit/style.css') as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except FileNotFoundError:
+        pass
         
 def create_terminal_panel(title, content, status="online"):
     """Create a cyberpunk terminal-style panel"""

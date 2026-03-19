@@ -6,8 +6,10 @@ services:
     container_name: deep-anal-app
     ports:
       - "5001:5001"
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://postgres:deepanal123@postgres:5432/deepanal
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/deepanal
     depends_on:
       - postgres
     volumes:
@@ -22,7 +24,7 @@ services:
     environment:
       - POSTGRES_DB=deepanal
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=deepanal123
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql

@@ -16,7 +16,7 @@ with open("local_requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="deep-anal",
-    version="1.0.0",
+    version="2.1.0",
     author="DEEP ANAL Development Team",
     author_email="dev@deepanal.io",
     description="Advanced Steganography Analysis Platform with 3D Visualizations",
@@ -39,7 +39,7 @@ setup(
         "Topic :: Security :: Cryptography",
         "Topic :: Multimedia :: Graphics",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.11",
     install_requires=requirements,
     extras_require={
         "dev": [
@@ -53,14 +53,7 @@ setup(
             "sphinx-rtd-theme>=1.0.0",
         ],
     },
-    entry_points={
-        "console_scripts": [
-            "deep-anal=main:main",
-            "deep-anal-debug=debug_analysis:main",
-            "deep-anal-extract=extract_hidden:main",
-            "deep-anal-test=create_test_images:main",
-        ],
-    },
+    entry_points={},
     include_package_data=True,
     package_data={
         "": ["*.md", "*.txt", "*.toml", "*.cfg"],
