@@ -1,0 +1,16 @@
+streamlit>=1.43.0
+numpy>=2.2.3
+pandas>=2.2.3
+pillow>=11.1.0
+pillow-heif>=1.1.0
+plotly>=6.0.0
+scipy>=1.15.2
+sqlalchemy>=2.0.40
+openai>=1.0.0
+imageio>=2.37.0
+opencv-python-headless>=4.8.0
+moviepy>=2.2.1
+pytesseract>=0.3.13
+matplotlib>=3.10.6
+mcp>=1.20.0
+setuptools>=80.9.0
